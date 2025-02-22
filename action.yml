@@ -1,0 +1,35 @@
+name: DockerHub to GHCR Sync
+description: Sync images from DockerHub to GHCR
+author: Your name or organization here
+
+branding:
+  icon: docker
+  color: blue
+
+inputs:
+  dockerHubOrganisation:
+    description: DockerHub organisation to sync from
+    required: true
+  dockerHubRepository:
+    description: DockerHub repository to sync from
+    required: true
+  ghcrOrganisation:
+    description: GHCR organisation to sync to
+    required: true
+  ghcrRepository:
+    description: GHCR repository to sync to
+    required: true
+  tags:
+    description:
+      Glob pattern to filter which tags to sync (e.g., 'v*' for version tags,
+      '*-stable' for stable tags) based on DockerHub tags
+    required: false
+    default: '*'
+  dockerConcurrency:
+    description: Number of concurrent Docker pull and push operations
+    required: false
+    default: '2'
+
+runs:
+  using: node20
+  main: dist/index.js
