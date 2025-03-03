@@ -1,9 +1,14 @@
-import * as core from '@actions/core'
-import { Lifecycle, scoped } from 'tsyringe'
+import { Lifecycle, inject, scoped } from 'tsyringe'
+import { Core } from './GitHubAction/Core.js'
 
 @scoped(Lifecycle.ContainerScoped)
 export class Logger {
+  constructor(
+    @inject(Core)
+    private readonly core: Core
+  ) {}
+
   public info(message: string): void {
-    core.info(message)
+    this.core.info(message)
   }
 }

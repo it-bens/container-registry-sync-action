@@ -1,7 +1,5 @@
 export interface Inputs {
-    dockerHubOrganisation: string;
-    dockerHubRepository: string;
-    ghcrOrganisation: string;
-    ghcrRepository: string;
+    sourceRepository: string;
+    targetRepository: string;
     tags: string;
 }
