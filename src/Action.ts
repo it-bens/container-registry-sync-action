@@ -40,11 +40,7 @@ export class Action {
       filteredSingleImageDockerHubIndices
     )
 
-    await ghcrSingleImageIndices.pushAllImages(
-      this.docker,
-      this.crane,
-      this.logger
-    )
+    await ghcrSingleImageIndices.pushAllImages(this.docker, this.crane)
 
     const ghcrMultiImageIndices = this.buildMultiImageGhcrIndices(
       filteredMultiImageDockerHubIndices,

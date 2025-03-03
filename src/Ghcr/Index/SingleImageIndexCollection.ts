@@ -1,7 +1,6 @@
 import { Crane } from '../../Utils/Crane.js'
 import { Docker } from '../../Utils/Docker.js'
 import { SingleImageIndexCollection as DockerHubSingleImageIndexCollection } from '../../DockerHub/Index/SingleImageIndexCollection.js'
-import { Logger } from '../../Utils/Logger.js'
 import { Repository } from '../Repository.js'
 import { SingleImageIndex } from './SingleImageIndex.js'
 
@@ -33,9 +32,9 @@ export class SingleImageIndexCollection {
     return this.indices.length
   }
 
-  public async pushAllImages(docker: Docker, crane: Crane, logger: Logger) {
+  public async pushAllImages(docker: Docker, crane: Crane) {
     await Promise.all(
-      this.indices.map((index) => index.pushImage(docker, crane, logger))
+      this.indices.map((index) => index.pushImage(docker, crane))
     )
   }
 }

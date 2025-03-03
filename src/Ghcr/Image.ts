@@ -1,7 +1,6 @@
 import { Crane } from '../Utils/Crane.js'
 import { Docker } from '../Utils/Docker.js'
 import { Image as DockerHubImage } from '../DockerHub/Image.js'
-import { Logger } from '../Utils/Logger.js'
 import { Repository } from './Repository.js'
 
 export class Image {
@@ -24,7 +23,7 @@ export class Image {
     return this.dockerHubImage.name
   }
 
-  public async push(docker: Docker, crane: Crane, logger: Logger) {
+  public async push(docker: Docker, crane: Crane) {
     // Docker will use a local image for further actions,
     // even if the remote version differs.
     // This might lead to a false positive up-to-date evaluation.
@@ -34,13 +33,6 @@ export class Image {
       this.dockerHubImage.architecture,
       false
     )
-
-    if (await this.isUpToDate(docker)) {
-      logger.info(
-        `Image ghcr.io/${this.repository.repository()}:${this.dockerHubImage.name} is up to date, skipping push`
-      )
-      return
-    }
 
     await docker.tag(
       this.dockerHubImage.repository.repository(),
@@ -62,25 +54,5 @@ export class Image {
       annotations,
       labels
     )
-  }
-
-  private async isUpToDate(docker: Docker): Promise<boolean> {
-    const imageInformationSets = await docker.inspectImage(
-      `ghcr.io/${this.repository.repository()}`,
-      this.dockerHubImage.name
-    )
-
-    if (imageInformationSets === null) {
-      return false
-    }
-    if (imageInformationSets.length === 0) {
-      return false
-    }
-
-    const labels = imageInformationSets[0].Config.Labels || {}
-
-    const originalDigest: string = labels['com.dockerhub.original-digest'] || ''
-
-    return originalDigest === this.dockerHubImage.digest
   }
 }

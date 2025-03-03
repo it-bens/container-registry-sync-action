@@ -27265,33 +27265,17 @@ let Image$1 = class Image {
     name() {
         return this.dockerHubImage.name;
     }
-    async push(docker, crane, logger) {
+    async push(docker, crane) {
         // Docker will use a local image for further actions,
         // even if the remote version differs.
         // This might lead to a false positive up-to-date evaluation.
         await docker.pull(`ghcr.io/${this.repository.repository()}`, this.dockerHubImage.name, this.dockerHubImage.architecture, false);
-        if (await this.isUpToDate(docker)) {
-            logger.info(`Image ghcr.io/${this.repository.repository()}:${this.dockerHubImage.name} is up to date, skipping push`);
-            return;
-        }
         await docker.tag(this.dockerHubImage.repository.repository(), this.dockerHubImage.name, `ghcr.io/${this.repository.repository()}`, this.dockerHubImage.name);
         await docker.push(`ghcr.io/${this.repository.repository()}`, this.dockerHubImage.name);
         const annotations = {};
         const labels = {};
         labels[this.originalDigestAnnotation] = this.dockerHubImage.digest;
         await crane.mutate(`ghcr.io/${this.repository.repository()}`, this.dockerHubImage.name, annotations, labels);
-    }
-    async isUpToDate(docker) {
-        const imageInformationSets = await docker.inspectImage(`ghcr.io/${this.repository.repository()}`, this.dockerHubImage.name);
-        if (imageInformationSets === null) {
-            return false;
-        }
-        if (imageInformationSets.length === 0) {
-            return false;
-        }
-        const labels = imageInformationSets[0].Config.Labels || {};
-        const originalDigest = labels['com.dockerhub.original-digest'] || '';
-        return originalDigest === this.dockerHubImage.digest;
     }
 };
 
@@ -27381,8 +27365,8 @@ let SingleImageIndex$1 = class SingleImageIndex {
     static fromDockerHubIndex(repository, dockerHubIndex) {
         return new SingleImageIndex(repository, dockerHubIndex.name, Image$1.fromDockerHubImage(repository, dockerHubIndex.image));
     }
-    async pushImage(docker, crane, logger) {
-        await this.image.push(docker, crane, logger);
+    async pushImage(docker, crane) {
+        await this.image.push(docker, crane);
     }
 };
 
@@ -27405,8 +27389,8 @@ let SingleImageIndexCollection$1 = class SingleImageIndexCollection {
     getImageCount() {
         return this.indices.length;
     }
-    async pushAllImages(docker, crane, logger) {
-        await Promise.all(this.indices.map((index) => index.pushImage(docker, crane, logger)));
+    async pushAllImages(docker, crane) {
+        await Promise.all(this.indices.map((index) => index.pushImage(docker, crane)));
     }
 };
 
@@ -27433,7 +27417,7 @@ class Action {
         const filteredMultiImageDockerHubIndices = await this.filterMultiImageDockerHubIndices(dockerHubIndices.multiImageIndexCollection);
         await filteredSingleImageDockerHubIndices.pullAllImages(this.docker);
         const ghcrSingleImageIndices = this.buildSingleImageGhcrIndices(filteredSingleImageDockerHubIndices);
-        await ghcrSingleImageIndices.pushAllImages(this.docker, this.crane, this.logger);
+        await ghcrSingleImageIndices.pushAllImages(this.docker, this.crane);
         const ghcrMultiImageIndices = this.buildMultiImageGhcrIndices(filteredMultiImageDockerHubIndices, dockerHubIndices.singleImageIndexCollection);
         await ghcrMultiImageIndices.buildAndPushAllManifests(this.docker);
     }

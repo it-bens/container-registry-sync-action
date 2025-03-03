@@ -2,7 +2,6 @@ import { Crane } from '../../Utils/Crane.js'
 import { Docker } from '../../Utils/Docker.js'
 import { SingleImageIndex as DockerHubSingleImageIndex } from '../../DockerHub/Index/SingleImageIndex.js'
 import { Image } from '../Image.js'
-import { Logger } from '../../Utils/Logger.js'
 import { Repository } from '../Repository.js'
 
 export class SingleImageIndex {
@@ -23,7 +22,7 @@ export class SingleImageIndex {
     )
   }
 
-  public async pushImage(docker: Docker, crane: Crane, logger: Logger) {
-    await this.image.push(docker, crane, logger)
+  public async pushImage(docker: Docker, crane: Crane) {
+    await this.image.push(docker, crane)
   }
 }
