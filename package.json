@@ -1,17 +1,17 @@
 {
-  "name": "dockerhub-to-ghcr-sync",
-  "description": "GitHub Action to sync images from DockerHub to GHCR",
+  "name": "container-regitry-sync-action",
+  "description": "GitHub Action to sync images between registries",
   "version": "v0.1.0",
   "author": "Martin Bens",
   "type": "module",
   "private": true,
-  "homepage": "https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action",
+  "homepage": "https://github.com/it-bens/container-registry-sync-action",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action"
+    "url": "git+https://github.com/it-bens/container-registry-sync-action"
   },
   "bugs": {
-    "url": "https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/issues"
+    "url": "https://github.com/it-bens/container-registry-sync-action/issues"
   },
   "keywords": [
     "actions",

@@ -1,9 +1,9 @@
 # Container Registry Sync Action
 
-[![GitHub Super-Linter](https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
-![CI](https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/actions/workflows/ci.yml/badge.svg)
-[![Check dist/](https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/actions/workflows/check-dist.yml/badge.svg)](https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/actions/workflows/check-dist.yml)
-[![CodeQL](https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/it-bens/sync-images-from-dockerhub-to-ghcr-action/actions/workflows/codeql-analysis.yml)
+[![GitHub Super-Linter](https://github.com/it-bens/container-registry-sync-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
+![CI](https://github.com/it-bens/container-registry-sync-action/actions/workflows/ci.yml/badge.svg)
+[![Check dist/](https://github.com/it-bens/container-registry-sync-action/actions/workflows/check-dist.yml/badge.svg)](https://github.com/it-bens/container-registry-sync-action/actions/workflows/check-dist.yml)
+[![CodeQL](https://github.com/it-bens/container-registry-sync-action/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/it-bens/container-registry-sync-action/actions/workflows/codeql-analysis.yml)
 
 ## About
 
@@ -71,7 +71,7 @@ jobs:
     steps:
       # ...
       - name: Sync images
-        uses: it-bens/sync-images-from-dockerhub-to-ghcr-action@main
+        uses: it-bens/container-registry-sync-action@main
         with:
           sourceRepository: 'dockware/dev'
           targetRepository: 'ghcr.io/dockware-mirror/dev'
