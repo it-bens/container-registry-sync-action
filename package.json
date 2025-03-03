@@ -1,7 +1,7 @@
 {
   "name": "dockerhub-to-ghcr-sync",
   "description": "GitHub Action to sync images from DockerHub to GHCR",
-  "version": "0.1.0",
+  "version": "v0.1.0",
   "author": "Martin Bens",
   "type": "module",
   "private": true,
