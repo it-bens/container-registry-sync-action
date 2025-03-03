@@ -1,5 +1,4 @@
 import { Docker } from '../../Utils/Docker.js'
-import { Image } from '../Image.js'
 import { MultiImageIndex } from './MultiImageIndex.js'
 import { Repository } from '../Repository.js'
 
@@ -16,10 +15,6 @@ export class MultiImageIndexCollection {
 
   public all(): MultiImageIndex[] {
     return this.indices
-  }
-
-  public allImages(): Image[] {
-    return this.indices.flatMap((index) => index.images)
   }
 
   public async pullAllImages(docker: Docker) {

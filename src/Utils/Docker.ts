@@ -1,6 +1,5 @@
 import * as exec from '@actions/exec'
 import { DockerConcurrencyLimiter } from './DockerConcurrencyLimiter.js'
-import { ImageInformation } from '../Docker/ImageInformation.js'
 
 export class Docker {
   constructor(private readonly concurrencyLimiter: DockerConcurrencyLimiter) {}
@@ -36,43 +35,6 @@ export class Docker {
       ['manifest', 'rm', `${repository}:${tag}`],
       options
     )
-  }
-
-  public async inspectImage(
-    repository: string,
-    tag: string
-  ): Promise<ImageInformation[] | null> {
-    let output = ''
-    let error = ''
-    const options = {
-      // The image inspect command returns a non-zero exit code if the image does not exist,
-      // so it must not fail if an error is written to stderr.
-      failOnStdErr: false,
-      ignoreReturnCode: true,
-      listeners: {
-        stdout: (data: Buffer) => {
-          output += data.toString()
-        },
-        stderr: (data: Buffer) => {
-          error += data.toString()
-        }
-      }
-    }
-
-    await exec.exec(
-      'docker',
-      ['image', 'inspect', `${repository}:${tag}`],
-      options
-    )
-
-    if (error.length > 0) {
-      return null
-    }
-    if (output.length === 0) {
-      return null
-    }
-
-    return JSON.parse(output)
   }
 
   public async pull(

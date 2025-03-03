@@ -27492,32 +27492,6 @@ class Docker {
         };
         await execExports.exec('docker', ['manifest', 'rm', `${repository}:${tag}`], options);
     }
-    async inspectImage(repository, tag) {
-        let output = '';
-        let error = '';
-        const options = {
-            // The image inspect command returns a non-zero exit code if the image does not exist,
-            // so it must not fail if an error is written to stderr.
-            failOnStdErr: false,
-            ignoreReturnCode: true,
-            listeners: {
-                stdout: (data) => {
-                    output += data.toString();
-                },
-                stderr: (data) => {
-                    error += data.toString();
-                }
-            }
-        };
-        await execExports.exec('docker', ['image', 'inspect', `${repository}:${tag}`], options);
-        if (error.length > 0) {
-            return null;
-        }
-        if (output.length === 0) {
-            return null;
-        }
-        return JSON.parse(output);
-    }
     async pull(repository, tag, architecture, failOnError = true) {
         const options = {
             failOnStdErr: failOnError,
@@ -27593,9 +27567,6 @@ class MultiImageIndexCollection {
     }
     all() {
         return this.indices;
-    }
-    allImages() {
-        return this.indices.flatMap((index) => index.images);
     }
     async pullAllImages(docker) {
         await Promise.all(this.indices.map((index) => index.pullAllImages(docker)));
