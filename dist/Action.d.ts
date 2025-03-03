@@ -6,15 +6,14 @@ import { Inputs } from './Inputs.js';
 import { Logger } from './Utils/Logger.js';
 import { TagFilter } from './DockerHub/Service/TagFilter.js';
 export declare class Action {
-    private readonly inputs;
     private readonly dockerHubClient;
     private readonly tagFilter;
     private readonly indexFilterAgainstGhcrInformation;
     private readonly docker;
     private readonly crane;
     private readonly logger;
-    constructor(inputs: Inputs, dockerHubClient: DockerHubClient, tagFilter: TagFilter, indexFilterAgainstGhcrInformation: IndexFilterAgainstGhcrInformation, docker: Docker, crane: Crane, logger: Logger);
-    run(): Promise<void>;
+    constructor(dockerHubClient: DockerHubClient, tagFilter: TagFilter, indexFilterAgainstGhcrInformation: IndexFilterAgainstGhcrInformation, docker: Docker, crane: Crane, logger: Logger);
+    run(inputs: Inputs): Promise<void>;
     private fetchDockerHubIndices;
     private filterSingleImageDockerHubIndices;
     private filterMultiImageDockerHubIndices;

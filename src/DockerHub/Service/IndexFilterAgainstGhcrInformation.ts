@@ -1,8 +1,13 @@
+import { Lifecycle, inject, scoped } from 'tsyringe'
 import { Client } from '../../Ghcr/Service/Client.js'
 import { SingleImageIndexCollection } from '../Index/SingleImageIndexCollection.js'
 
+@scoped(Lifecycle.ContainerScoped)
 export class IndexFilterAgainstGhcrInformation {
-  constructor(private readonly ghcrClient: Client) {}
+  constructor(
+    @inject(Client)
+    private readonly ghcrClient: Client
+  ) {}
 
   public async withoutIndicesThatAreUpToDate(
     indices: SingleImageIndexCollection,

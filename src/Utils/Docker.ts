@@ -1,8 +1,13 @@
 import * as exec from '@actions/exec'
+import { Lifecycle, inject, scoped } from 'tsyringe'
 import { DockerConcurrencyLimiter } from './DockerConcurrencyLimiter.js'
 
+@scoped(Lifecycle.ContainerScoped)
 export class Docker {
-  constructor(private readonly concurrencyLimiter: DockerConcurrencyLimiter) {}
+  constructor(
+    @inject(DockerConcurrencyLimiter)
+    private readonly concurrencyLimiter: DockerConcurrencyLimiter
+  ) {}
 
   public async createManifest(
     repository: string,

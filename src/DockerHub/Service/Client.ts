@@ -1,3 +1,4 @@
+import { Lifecycle, inject, scoped } from 'tsyringe'
 import { DockerHubApiIndex } from '../Remote/DockerHubApiIndex.js'
 import { IndexBuilder } from './IndexBuilder.js'
 import { IndexCollectionCollection } from '../Index/IndexCollectionCollection.js'
@@ -7,11 +8,15 @@ import { SingleImageIndexCollection } from '../Index/SingleImageIndexCollection.
 import axios from 'axios'
 import { sprintf } from '../../Utils/sprintf.js'
 
+@scoped(Lifecycle.ContainerScoped)
 export class Client {
   private readonly urlTemplate: string =
     'https://hub.docker.com/v2/repositories/%s/tags'
 
-  constructor(private readonly indexBuilder: IndexBuilder) {}
+  constructor(
+    @inject(IndexBuilder)
+    private readonly indexBuilder: IndexBuilder
+  ) {}
 
   public async fetchIndices(
     organisationName: string,

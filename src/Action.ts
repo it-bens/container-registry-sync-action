@@ -1,3 +1,4 @@
+import { Lifecycle, inject, scoped } from 'tsyringe'
 import { Crane } from './Utils/Crane.js'
 import { Docker } from './Utils/Docker.js'
 import { Client as DockerHubClient } from './DockerHub/Service/Client.js'
@@ -12,37 +13,47 @@ import { Inputs } from './Inputs.js'
 import { Logger } from './Utils/Logger.js'
 import { TagFilter } from './DockerHub/Service/TagFilter.js'
 
+@scoped(Lifecycle.ContainerScoped)
 export class Action {
   constructor(
-    private readonly inputs: Inputs,
+    @inject(DockerHubClient)
     private readonly dockerHubClient: DockerHubClient,
+    @inject(TagFilter)
     private readonly tagFilter: TagFilter,
+    @inject(IndexFilterAgainstGhcrInformation)
     private readonly indexFilterAgainstGhcrInformation: IndexFilterAgainstGhcrInformation,
+    @inject(Docker)
     private readonly docker: Docker,
+    @inject(Crane)
     private readonly crane: Crane,
+    @inject(Logger)
     private readonly logger: Logger
   ) {}
 
-  async run() {
-    const dockerHubIndices = await this.fetchDockerHubIndices()
+  async run(inputs: Inputs) {
+    const dockerHubIndices = await this.fetchDockerHubIndices(inputs)
     const filteredSingleImageDockerHubIndices =
       await this.filterSingleImageDockerHubIndices(
+        inputs,
         dockerHubIndices.singleImageIndexCollection
       )
     const filteredMultiImageDockerHubIndices =
       await this.filterMultiImageDockerHubIndices(
+        inputs,
         dockerHubIndices.multiImageIndexCollection
       )
 
     await filteredSingleImageDockerHubIndices.pullAllImages(this.docker)
 
     const ghcrSingleImageIndices = this.buildSingleImageGhcrIndices(
+      inputs,
       filteredSingleImageDockerHubIndices
     )
 
     await ghcrSingleImageIndices.pushAllImages(this.docker, this.crane)
 
     const ghcrMultiImageIndices = this.buildMultiImageGhcrIndices(
+      inputs,
       filteredMultiImageDockerHubIndices,
       dockerHubIndices.singleImageIndexCollection
     )
@@ -50,10 +61,12 @@ export class Action {
     await ghcrMultiImageIndices.buildAndPushAllManifests(this.docker)
   }
 
-  private async fetchDockerHubIndices(): Promise<DockerHubIndexCollectionCollection> {
+  private async fetchDockerHubIndices(
+    inputs: Inputs
+  ): Promise<DockerHubIndexCollectionCollection> {
     const dockerHubIndices = await this.dockerHubClient.fetchIndices(
-      this.inputs.dockerHubOrganisation,
-      this.inputs.dockerHubRepository
+      inputs.dockerHubOrganisation,
+      inputs.dockerHubRepository
     )
     this.logger.info(
       `${dockerHubIndices.singleImageIndexCollection.length.toString()} indices with one image were found Docker Hub.`
@@ -66,20 +79,21 @@ export class Action {
   }
 
   private async filterSingleImageDockerHubIndices(
+    inputs: Inputs,
     singleImageIndexCollection: DockerHubSingleImageIndexCollection
   ): Promise<DockerHubSingleImageIndexCollection> {
     let filteredSingleImageDockerHubIndices =
       this.tagFilter.filterSingleImageIndexCollection(
         singleImageIndexCollection,
-        this.inputs.tags
+        inputs.tags
       )
     this.logger.info(
       `${filteredSingleImageDockerHubIndices.length.toString()} indices with one image match the tags filter.`
     )
 
     const ghcrRepository = new GhcrRepository(
-      this.inputs.ghcrOrganisation,
-      this.inputs.ghcrRepository
+      inputs.ghcrOrganisation,
+      inputs.ghcrRepository
     )
     filteredSingleImageDockerHubIndices =
       await this.indexFilterAgainstGhcrInformation.withoutIndicesThatAreUpToDate(
@@ -94,12 +108,13 @@ export class Action {
   }
 
   private async filterMultiImageDockerHubIndices(
+    inputs: Inputs,
     multiImageIndexCollection: DockerHubMultiImageIndexCollection
   ): Promise<DockerHubMultiImageIndexCollection> {
     const filteredMultiImageDockerHubIndices =
       this.tagFilter.filterMultiImageIndexCollection(
         multiImageIndexCollection,
-        this.inputs.tags
+        inputs.tags
       )
     this.logger.info(
       `${filteredMultiImageDockerHubIndices.length.toString()} indices with multiple images match the tags filter.`
@@ -109,11 +124,12 @@ export class Action {
   }
 
   private buildSingleImageGhcrIndices(
+    inputs: Inputs,
     singleImageDockerHubIndices: DockerHubSingleImageIndexCollection
   ): GhcrSingleImageIndexCollection {
     const repository = new GhcrRepository(
-      this.inputs.ghcrOrganisation,
-      this.inputs.ghcrRepository
+      inputs.ghcrOrganisation,
+      inputs.ghcrRepository
     )
 
     const ghcrSingleImageIndices =
@@ -130,12 +146,13 @@ export class Action {
   }
 
   private buildMultiImageGhcrIndices(
+    inputs: Inputs,
     multiImageIndexCollection: DockerHubMultiImageIndexCollection,
     singleImageDockerHubIndices: DockerHubSingleImageIndexCollection
   ): GhcrMultiImageIndexCollection {
     const repository = new GhcrRepository(
-      this.inputs.ghcrOrganisation,
-      this.inputs.ghcrRepository
+      inputs.ghcrOrganisation,
+      inputs.ghcrRepository
     )
 
     const ghcrMultiImageIndices =

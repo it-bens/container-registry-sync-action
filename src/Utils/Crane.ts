@@ -1,5 +1,7 @@
 import * as exec from '@actions/exec'
+import { Lifecycle, scoped } from 'tsyringe'
 
+@scoped(Lifecycle.ContainerScoped)
 export class Crane {
   public async mutate(
     repository: string,

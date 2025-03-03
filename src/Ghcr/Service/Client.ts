@@ -1,7 +1,9 @@
+import { Lifecycle, scoped } from 'tsyringe'
 import { ImageInformation } from '../Remote/ImageInformation.js'
 import { Manifest } from '../Remote/Manifest.js'
 import axios from 'axios'
 
+@scoped(Lifecycle.ContainerScoped)
 export class Client {
   public async fetchOriginalDockerHubDigest(
     repository: string,
