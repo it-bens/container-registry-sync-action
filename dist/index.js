@@ -47801,6 +47801,9 @@ class MultiImageIndex {
         this.name = name;
         this.digest = digest;
         this.images = images;
+        if (this.images.length < 2) {
+            throw new Error('A multi-image index must contain at least two images');
+        }
     }
     async pullAllImages(docker) {
         await Promise.all(this.images.map((image) => image.pull(docker)));
