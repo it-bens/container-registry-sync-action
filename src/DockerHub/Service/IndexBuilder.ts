@@ -1,3 +1,4 @@
+import { Lifecycle, inject, scoped } from 'tsyringe'
 import { DockerHubApiIndex } from '../Remote/DockerHubApiIndex.js'
 import { Image } from '../Image.js'
 import { ImageBuilder } from './ImageBuilder.js'
@@ -5,8 +6,12 @@ import { MultiImageIndex } from '../Index/MultiImageIndex.js'
 import { Repository } from '../Repository.js'
 import { SingleImageIndex } from '../Index/SingleImageIndex.js'
 
+@scoped(Lifecycle.ContainerScoped)
 export class IndexBuilder {
-  constructor(private readonly imageBuilder: ImageBuilder) {}
+  constructor(
+    @inject(ImageBuilder)
+    private readonly imageBuilder: ImageBuilder
+  ) {}
 
   public buildMultiImageIndexFromDockerHubApiResponse(
     apiResponse: DockerHubApiIndex,

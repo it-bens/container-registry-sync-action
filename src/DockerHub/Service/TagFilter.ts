@@ -1,9 +1,11 @@
+import { Lifecycle, scoped } from 'tsyringe'
 import { MultiImageIndex } from '../Index/MultiImageIndex.js'
 import { MultiImageIndexCollection } from '../Index/MultiImageIndexCollection.js'
 import { SingleImageIndex } from '../Index/SingleImageIndex.js'
 import { SingleImageIndexCollection } from '../Index/SingleImageIndexCollection.js'
 import { minimatch } from 'minimatch'
 
+@scoped(Lifecycle.ContainerScoped)
 export class TagFilter {
   public filterSingleImageIndexCollection(
     indexCollection: SingleImageIndexCollection,

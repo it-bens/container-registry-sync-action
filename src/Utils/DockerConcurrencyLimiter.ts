@@ -1,7 +1,13 @@
+import { Lifecycle, inject, scoped } from 'tsyringe'
+
+@scoped(Lifecycle.ContainerScoped)
 export class DockerConcurrencyLimiter {
   private running = 0
 
-  constructor(private readonly maxConcurrent: number = 2) {}
+  constructor(
+    @inject('DockerConcurrency')
+    private readonly maxConcurrent: number = 2
+  ) {}
 
   public async execute<T>(operation: () => Promise<T>): Promise<T> {
     while (this.running >= this.maxConcurrent) {

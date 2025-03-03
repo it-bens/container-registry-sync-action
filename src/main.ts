@@ -1,16 +1,8 @@
+import 'reflect-metadata'
 import * as core from '@actions/core'
 import { Action } from './Action.js'
-import { Crane } from './Utils/Crane.js'
-import { Docker } from './Utils/Docker.js'
-import { DockerConcurrencyLimiter } from './Utils/DockerConcurrencyLimiter.js'
-import { Client as DockerHubClient } from './DockerHub/Service/Client.js'
-import { ImageBuilder as DockerHubImageBuilder } from './DockerHub/Service/ImageBuilder.js'
-import { IndexBuilder as DockerHubIndexBuilder } from './DockerHub/Service/IndexBuilder.js'
-import { TagFilter as DockerHubTagFilter } from './DockerHub/Service/TagFilter.js'
-import { Client as GhcrClient } from './Ghcr/Service/Client.js'
-import { IndexFilterAgainstGhcrInformation } from './DockerHub/Service/IndexFilterAgainstGhcrInformation.js'
 import { Inputs } from './Inputs.js'
-import { Logger } from './Utils/Logger.js'
+import { container } from 'tsyringe'
 
 export async function run() {
   const inputs: Inputs = {
@@ -34,38 +26,12 @@ export async function run() {
       'dockerConcurrency must be a positive integer greater than 0'
     )
   }
+  container.register('DockerConcurrency', { useValue: dockerConcurrency })
 
-  const dockerConcurrencyLimiter = new DockerConcurrencyLimiter(
-    dockerConcurrency
-  )
-  const docker = new Docker(dockerConcurrencyLimiter)
-  const crane = new Crane()
-
-  const dockerHubImageBuilder = new DockerHubImageBuilder()
-  const dockerHubIndexBuilder = new DockerHubIndexBuilder(dockerHubImageBuilder)
-  const dockerHubClient: DockerHubClient = new DockerHubClient(
-    dockerHubIndexBuilder
-  )
-  const dockerHubTagFilter = new DockerHubTagFilter()
-
-  const ghcrClient = new GhcrClient()
-  const indexFilterAgainstGhcrInformation =
-    new IndexFilterAgainstGhcrInformation(ghcrClient)
-
-  const logger = new Logger()
-
-  const action = new Action(
-    inputs,
-    dockerHubClient,
-    dockerHubTagFilter,
-    indexFilterAgainstGhcrInformation,
-    docker,
-    crane,
-    logger
-  )
+  const action = container.resolve(Action)
 
   try {
-    await action.run()
+    await action.run(inputs)
   } catch (error: unknown) {
     if (error instanceof Error) core.setFailed(error.message)
   }
