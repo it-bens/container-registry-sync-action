@@ -3,7 +3,7 @@ description: Sync images from DockerHub to GHCR
 author: Your name or organization here
 
 branding:
-  icon: docker
+  icon: arrow-right
   color: blue
 
 inputs:
