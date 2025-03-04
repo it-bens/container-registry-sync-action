@@ -71,7 +71,7 @@ function prepareContainer() {
   })
   const regClientConcurrency = parseInt(regClientConcurrencyInput)
   if (isNaN(regClientConcurrency) || regClientConcurrency <= 0) {
-    throw new Error(
+    core.setFailed(
       'regClientConcurrency must be a positive integer greater than 0'
     )
   }

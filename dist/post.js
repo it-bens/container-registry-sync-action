@@ -31985,7 +31985,7 @@ function prepareContainer() {
     });
     const regClientConcurrency = parseInt(regClientConcurrencyInput);
     if (isNaN(regClientConcurrency) || regClientConcurrency <= 0) {
-        throw new Error('regClientConcurrency must be a positive integer greater than 0');
+        coreExports.setFailed('regClientConcurrency must be a positive integer greater than 0');
     }
     instance.register('RegClientConcurrency', { useValue: regClientConcurrency });
 }
