@@ -29438,8 +29438,33 @@ let Logger = class Logger {
     constructor(core) {
         this.core = core;
     }
-    info(message) {
-        this.core.info(message);
+    logLoggingOutFromRepository(repository) {
+        this.core.info(`Logging out from ${repository} repository.`);
+    }
+    logSkipLoginToRepository(repository) {
+        this.core.info(`Skipping login to ${repository} repository.`);
+    }
+    logTagsFound(tagCount, repository) {
+        this.core.info(`${tagCount.toString()} tags were found in the ${repository} repository.`);
+    }
+    logTagsMatched(tagCount, repository) {
+        this.core.info(`${tagCount.toString()} tags match the tags filter in the ${repository} repository.`);
+    }
+    logTagsToBeCopied(tags, sourceRepository, targetRepository) {
+        const startingText = `The following tags will be copied from ${sourceRepository} to ${targetRepository}: `;
+        let message = startingText;
+        for (const tag of tags) {
+            if ((message + tag + ', ').length > 1000) {
+                this.core.info(message.slice(0, -2)); // Remove the trailing comma and space
+                message = tag + ', ';
+            }
+            else {
+                message += tag + ', ';
+            }
+        }
+        if (message.length > startingText.length) {
+            this.core.info(message.slice(0, -2)); // Log the remaining tags
+        }
     }
 };
 Logger = __decorate([
@@ -29711,29 +29736,31 @@ let Action$1 = class Action {
     credentialsBuilder;
     regClient;
     logger;
-    constructor(credentialsBuilder, regClient, logger) {
+    core;
+    constructor(credentialsBuilder, regClient, logger, core) {
         this.credentialsBuilder = credentialsBuilder;
         this.regClient = regClient;
         this.logger = logger;
+        this.core = core;
     }
     async run(inputs) {
         const regClientCredentials = this.credentialsBuilder.build(inputs);
         if (!inputs.loginToSourceRepository) {
-            this.logger.info('Skipping login to source repository.');
+            this.logger.logSkipLoginToRepository('source');
         }
         else if (regClientCredentials.source.username === '' ||
             regClientCredentials.source.password === '') {
-            throw new Error('Source repository credentials (username and/or password) are missing.');
+            this.core.setFailed('Source repository credentials (username and/or password) are missing.');
         }
         else {
             await this.regClient.logIntoRegistry(regClientCredentials.source);
         }
         if (!inputs.loginToTargetRepository) {
-            this.logger.info('Skipping login to target repository.');
+            this.logger.logSkipLoginToRepository('target');
         }
         else if (regClientCredentials.target.username === '' ||
             regClientCredentials.target.password === '') {
-            throw new Error('Target repository credentials (username and/or password) are missing.');
+            this.core.setFailed('Target repository credentials (username and/or password) are missing.');
         }
         else {
             await this.regClient.logIntoRegistry(regClientCredentials.target);
@@ -29741,11 +29768,11 @@ let Action$1 = class Action {
     }
     async post(inputs) {
         if (inputs.loginToSourceRepository) {
-            this.logger.info('Logging out from source repository.');
+            this.logger.logLoggingOutFromRepository('source');
             await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).source);
         }
         if (inputs.loginToTargetRepository) {
-            this.logger.info('Logging out from target repository.');
+            this.logger.logLoggingOutFromRepository('target');
             await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).target);
         }
     }
@@ -29755,9 +29782,11 @@ Action$1 = __decorate([
     __param(0, inject(RegClientCredentialsBuilder)),
     __param(1, inject(RegClient)),
     __param(2, inject(Logger)),
+    __param(3, inject(Core)),
     __metadata("design:paramtypes", [RegClientCredentialsBuilder,
         RegClient,
-        Logger])
+        Logger,
+        Core])
 ], Action$1);
 
 var balancedMatch;
@@ -31884,11 +31913,11 @@ let Action = class Action {
     async run(inputs) {
         await this.loginAction.run(inputs);
         const sourceRepositoryTags = await this.regClient.listTagsInRepository(inputs.sourceRepository);
-        this.logger.info(`${sourceRepositoryTags.length.toString()} tags were found in the source repository.`);
+        this.logger.logTagsFound(sourceRepositoryTags.length, 'source');
         let filteredSourceRepositoryTags = this.tagFilter.filter(sourceRepositoryTags, inputs.tags);
         filteredSourceRepositoryTags = this.tagSorter.sortTags(filteredSourceRepositoryTags);
-        this.logger.info(`${filteredSourceRepositoryTags.length.toString()} tags match the tags filter.`);
-        this.logger.info(`The following tags will be copied from ${inputs.sourceRepository} to ${inputs.targetRepository}: ${filteredSourceRepositoryTags.join(', ')}.`);
+        this.logger.logTagsMatched(filteredSourceRepositoryTags.length, 'source');
+        this.logger.logTagsToBeCopied(filteredSourceRepositoryTags, inputs.sourceRepository, inputs.targetRepository);
         for (const tag of filteredSourceRepositoryTags) {
             await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
         }

@@ -27,9 +27,7 @@ export class Action {
     const sourceRepositoryTags = await this.regClient.listTagsInRepository(
       inputs.sourceRepository
     )
-    this.logger.info(
-      `${sourceRepositoryTags.length.toString()} tags were found in the source repository.`
-    )
+    this.logger.logTagsFound(sourceRepositoryTags.length, 'source')
 
     let filteredSourceRepositoryTags = this.tagFilter.filter(
       sourceRepositoryTags,
@@ -38,12 +36,12 @@ export class Action {
     filteredSourceRepositoryTags = this.tagSorter.sortTags(
       filteredSourceRepositoryTags
     )
-    this.logger.info(
-      `${filteredSourceRepositoryTags.length.toString()} tags match the tags filter.`
-    )
+    this.logger.logTagsMatched(filteredSourceRepositoryTags.length, 'source')
 
-    this.logger.info(
-      `The following tags will be copied from ${inputs.sourceRepository} to ${inputs.targetRepository}: ${filteredSourceRepositoryTags.join(', ')}.`
+    this.logger.logTagsToBeCopied(
+      filteredSourceRepositoryTags,
+      inputs.sourceRepository,
+      inputs.targetRepository
     )
     for (const tag of filteredSourceRepositoryTags) {
       await this.regClient.copyImageFromSourceToTarget(

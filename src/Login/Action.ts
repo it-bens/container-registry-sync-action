@@ -1,4 +1,5 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
+import { Core } from '../Utils/GitHubAction/Core.js'
 import { Inputs } from '../Inputs.js'
 import { Logger } from '../Utils/Logger.js'
 import { RegClient } from '../Utils/RegClient.js'
@@ -12,19 +13,21 @@ export class Action {
     @inject(RegClient)
     private readonly regClient: RegClient,
     @inject(Logger)
-    private readonly logger: Logger
+    private readonly logger: Logger,
+    @inject(Core)
+    private readonly core: Core
   ) {}
 
   async run(inputs: Inputs): Promise<void> {
     const regClientCredentials = this.credentialsBuilder.build(inputs)
 
     if (!inputs.loginToSourceRepository) {
-      this.logger.info('Skipping login to source repository.')
+      this.logger.logSkipLoginToRepository('source')
     } else if (
       regClientCredentials.source.username === '' ||
       regClientCredentials.source.password === ''
     ) {
-      throw new Error(
+      this.core.setFailed(
         'Source repository credentials (username and/or password) are missing.'
       )
     } else {
@@ -32,12 +35,12 @@ export class Action {
     }
 
     if (!inputs.loginToTargetRepository) {
-      this.logger.info('Skipping login to target repository.')
+      this.logger.logSkipLoginToRepository('target')
     } else if (
       regClientCredentials.target.username === '' ||
       regClientCredentials.target.password === ''
     ) {
-      throw new Error(
+      this.core.setFailed(
         'Target repository credentials (username and/or password) are missing.'
       )
     } else {
@@ -47,14 +50,14 @@ export class Action {
 
   async post(inputs: Inputs): Promise<void> {
     if (inputs.loginToSourceRepository) {
-      this.logger.info('Logging out from source repository.')
+      this.logger.logLoggingOutFromRepository('source')
       await this.regClient.logoutFromRegistry(
         this.credentialsBuilder.build(inputs).source
       )
     }
 
     if (inputs.loginToTargetRepository) {
-      this.logger.info('Logging out from target repository.')
+      this.logger.logLoggingOutFromRepository('target')
       await this.regClient.logoutFromRegistry(
         this.credentialsBuilder.build(inputs).target
       )

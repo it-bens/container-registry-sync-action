@@ -24,11 +24,27 @@ describe('Login/Action', () => {
   beforeEach(() => {
     jest.clearAllMocks()
 
+    mockedCore.setFailed = jest.fn() as jest.MockedFunction<
+      typeof Core.prototype.setFailed
+    >
+
     mockedRegClientCredentialsBuilder.build = jest.fn() as jest.MockedFunction<
       typeof RegClientCredentialsBuilder.prototype.build
     >
-    mockedLogger.info = jest.fn() as jest.MockedFunction<
-      typeof Logger.prototype.info
+    mockedLogger.logTagsFound = jest.fn() as jest.MockedFunction<
+      typeof Logger.prototype.logTagsFound
+    >
+    mockedLogger.logTagsMatched = jest.fn() as jest.MockedFunction<
+      typeof Logger.prototype.logTagsMatched
+    >
+    mockedLogger.logTagsToBeCopied = jest.fn() as jest.MockedFunction<
+      typeof Logger.prototype.logTagsToBeCopied
+    >
+    mockedLogger.logLoggingOutFromRepository = jest.fn() as jest.MockedFunction<
+      typeof Logger.prototype.logLoggingOutFromRepository
+    >
+    mockedLogger.logSkipLoginToRepository = jest.fn() as jest.MockedFunction<
+      typeof Logger.prototype.logSkipLoginToRepository
     >
 
     mockedRegClient.logIntoRegistry = jest.fn() as jest.MockedFunction<
@@ -41,7 +57,8 @@ describe('Login/Action', () => {
     action = new Action(
       mockedRegClientCredentialsBuilder,
       mockedRegClient,
-      mockedLogger
+      mockedLogger,
+      mockedCore
     )
   })
 
@@ -63,10 +80,8 @@ describe('Login/Action', () => {
 
     await action.run(inputs)
 
-    expect(mockedLogger.info).toHaveBeenCalledTimes(1)
-    expect(mockedLogger.info).toHaveBeenCalledWith(
-      'Skipping login to source repository.'
-    )
+    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledTimes(1)
+    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledWith('source')
     expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledTimes(1)
   })
 
@@ -86,7 +101,10 @@ describe('Login/Action', () => {
     const credentials = new RegClientCredentialsBuilder().build(inputs)
     mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
 
-    await expect(action.run(inputs)).rejects.toThrow(
+    await action.run(inputs)
+
+    expect(mockedCore.setFailed).toHaveBeenCalledTimes(1)
+    expect(mockedCore.setFailed).toHaveBeenCalledWith(
       'Source repository credentials (username and/or password) are missing.'
     )
   })
@@ -132,10 +150,8 @@ describe('Login/Action', () => {
 
     await action.run(inputs)
 
-    expect(mockedLogger.info).toHaveBeenCalledTimes(1)
-    expect(mockedLogger.info).toHaveBeenCalledWith(
-      'Skipping login to target repository.'
-    )
+    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledTimes(1)
+    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledWith('target')
     expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledTimes(1)
   })
 
@@ -155,7 +171,10 @@ describe('Login/Action', () => {
     const credentials = new RegClientCredentialsBuilder().build(inputs)
     mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
 
-    await expect(action.run(inputs)).rejects.toThrow(
+    await action.run(inputs)
+
+    expect(mockedCore.setFailed).toHaveBeenCalledTimes(1)
+    expect(mockedCore.setFailed).toHaveBeenCalledWith(
       'Target repository credentials (username and/or password) are missing.'
     )
   })
@@ -201,11 +220,11 @@ describe('Login/Action', () => {
 
     await action.post(inputs)
 
-    expect(mockedLogger.info).toHaveBeenCalledWith(
-      'Logging out from source repository.'
+    expect(mockedLogger.logLoggingOutFromRepository).toHaveBeenCalledWith(
+      'source'
     )
-    expect(mockedLogger.info).toHaveBeenCalledWith(
-      'Logging out from target repository.'
+    expect(mockedLogger.logLoggingOutFromRepository).toHaveBeenCalledWith(
+      'target'
     )
     expect(mockedRegClient.logoutFromRegistry).toHaveBeenCalledWith(
       credentials.source

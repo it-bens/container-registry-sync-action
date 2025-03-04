@@ -2,5 +2,9 @@ import { Core } from './GitHubAction/Core.js';
 export declare class Logger {
     private readonly core;
     constructor(core: Core);
-    info(message: string): void;
+    logLoggingOutFromRepository(repository: string): void;
+    logSkipLoginToRepository(repository: string): void;
+    logTagsFound(tagCount: number, repository: string): void;
+    logTagsMatched(tagCount: number, repository: string): void;
+    logTagsToBeCopied(tags: string[], sourceRepository: string, targetRepository: string): void;
 }
