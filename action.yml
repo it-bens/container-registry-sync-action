@@ -10,9 +10,29 @@ inputs:
   sourceRepository:
     description: Repository to sync from
     required: true
+  loginToSourceRepository:
+    description: Whether to log in to the source repository
+    required: false
+    default: 'false'
+  sourceRepositoryUsername:
+    description: Username for the source repository
+    required: false
+  sourceRepositoryPassword:
+    description: Password for the source repository
+    required: false
   targetRepository:
     description: Repository to sync to
     required: true
+  loginToTargetRepository:
+    description: Whether to log in to the target repository
+    required: false
+    default: 'false'
+  targetRepositoryUsername:
+    description: Username for the target repository
+    required: false
+  targetRepositoryPassword:
+    description: Password for the target repository
+    required: false
   tags:
     description:
       Glob pattern to filter which tags to sync (e.g., 'v*' for version tags,
@@ -27,3 +47,4 @@ inputs:
 runs:
   using: node20
   main: dist/index.js
+  post: dist/post.js

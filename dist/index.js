@@ -29651,6 +29651,23 @@ let RegClient = class RegClient {
         ]);
         return output.stdout.trim().split('\n');
     }
+    async logIntoRegistry(credentials) {
+        const args = ['registry', 'login'];
+        if (credentials.registry !== null) {
+            args.push(credentials.registry);
+        }
+        args.push('-u', credentials.username, '--pass-stdin');
+        await this.exec.exec('regctl', args, {
+            input: Buffer.from(credentials.password)
+        });
+    }
+    async logoutFromRegistry(credentials) {
+        const args = ['registry', 'logout'];
+        if (credentials.registry !== null) {
+            args.push(credentials.registry);
+        }
+        await this.exec.exec('regctl', args);
+    }
     async copyImageFromSourceToTarget(sourceRepository, sourceTag, targetRepository, targetTag) {
         await this.concurrencyLimiter.execute(() => this.exec.exec('regctl', [
             'image',
@@ -29667,6 +29684,85 @@ RegClient = __decorate([
     __metadata("design:paramtypes", [Exec,
         RegClientConcurrencyLimiter])
 ], RegClient);
+
+let RegClientCredentialsBuilder = class RegClientCredentialsBuilder {
+    build(inputs) {
+        const sourceRegistry = inputs.sourceRepository.split('/').length === 2
+            ? null
+            : inputs.sourceRepository.split('/')[0];
+        const targetRegistry = inputs.targetRepository.split('/').length === 2
+            ? null
+            : inputs.targetRepository.split('/')[0];
+        return {
+            source: {
+                registry: sourceRegistry,
+                username: inputs.sourceRepositoryUsername,
+                password: inputs.sourceRepositoryPassword
+            },
+            target: {
+                registry: targetRegistry,
+                username: inputs.targetRepositoryUsername,
+                password: inputs.targetRepositoryPassword
+            }
+        };
+    }
+};
+RegClientCredentialsBuilder = __decorate([
+    scoped(Lifecycle$1.ContainerScoped)
+], RegClientCredentialsBuilder);
+
+let Action$1 = class Action {
+    credentialsBuilder;
+    regClient;
+    logger;
+    constructor(credentialsBuilder, regClient, logger) {
+        this.credentialsBuilder = credentialsBuilder;
+        this.regClient = regClient;
+        this.logger = logger;
+    }
+    async run(inputs) {
+        const regClientCredentials = this.credentialsBuilder.build(inputs);
+        if (!inputs.loginToSourceRepository) {
+            this.logger.info('Skipping login to source repository.');
+        }
+        else if (regClientCredentials.source.username === '' ||
+            regClientCredentials.source.password === '') {
+            throw new Error('Source repository credentials (username and/or password) are missing.');
+        }
+        else {
+            await this.regClient.logIntoRegistry(regClientCredentials.source);
+        }
+        if (!inputs.loginToTargetRepository) {
+            this.logger.info('Skipping login to target repository.');
+        }
+        else if (regClientCredentials.target.username === '' ||
+            regClientCredentials.target.password === '') {
+            throw new Error('Target repository credentials (username and/or password) are missing.');
+        }
+        else {
+            await this.regClient.logIntoRegistry(regClientCredentials.target);
+        }
+    }
+    async post(inputs) {
+        if (inputs.loginToSourceRepository) {
+            this.logger.info('Logging out from source repository.');
+            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).source);
+        }
+        if (inputs.loginToTargetRepository) {
+            this.logger.info('Logging out from target repository.');
+            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).target);
+        }
+    }
+};
+Action$1 = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject(RegClientCredentialsBuilder)),
+    __param(1, inject(RegClient)),
+    __param(2, inject(Logger)),
+    __metadata("design:paramtypes", [RegClientCredentialsBuilder,
+        RegClient,
+        Logger])
+], Action$1);
 
 var balancedMatch;
 var hasRequiredBalancedMatch;
@@ -31777,17 +31873,20 @@ TagSorter = __decorate([
 ], TagSorter);
 
 let Action = class Action {
+    loginAction;
     regClient;
     tagFilter;
     tagSorter;
     logger;
-    constructor(regClient, tagFilter, tagSorter, logger) {
+    constructor(loginAction, regClient, tagFilter, tagSorter, logger) {
+        this.loginAction = loginAction;
         this.regClient = regClient;
         this.tagFilter = tagFilter;
         this.tagSorter = tagSorter;
         this.logger = logger;
     }
     async run(inputs) {
+        await this.loginAction.run(inputs);
         const sourceRepositoryTags = await this.regClient.listTagsInRepository(inputs.sourceRepository);
         this.logger.info(`${sourceRepositoryTags.length.toString()} tags were found in the source repository.`);
         let filteredSourceRepositoryTags = this.tagFilter.filter(sourceRepositoryTags, inputs.tags);
@@ -31798,37 +31897,27 @@ let Action = class Action {
             await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
         }
     }
+    async post(inputs) {
+        await this.loginAction.post(inputs);
+    }
 };
 Action = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
-    __param(0, inject(RegClient)),
-    __param(1, inject(TagFilter)),
-    __param(2, inject(TagSorter)),
-    __param(3, inject(Logger)),
-    __metadata("design:paramtypes", [RegClient,
+    __param(0, inject(Action$1)),
+    __param(1, inject(RegClient)),
+    __param(2, inject(TagFilter)),
+    __param(3, inject(TagSorter)),
+    __param(4, inject(Logger)),
+    __metadata("design:paramtypes", [Action$1,
+        RegClient,
         TagFilter,
         TagSorter,
         Logger])
 ], Action);
 
 async function run() {
-    const inputs = {
-        sourceRepository: coreExports.getInput('sourceRepository', {
-            required: true
-        }),
-        targetRepository: coreExports.getInput('targetRepository', {
-            required: true
-        }),
-        tags: coreExports.getInput('tags', { required: false })
-    };
-    const regClientConcurrencyInput = coreExports.getInput('regClientConcurrency', {
-        required: false
-    });
-    const regClientConcurrency = parseInt(regClientConcurrencyInput);
-    if (isNaN(regClientConcurrency) || regClientConcurrency <= 0) {
-        throw new Error('regClientConcurrency must be a positive integer greater than 0');
-    }
-    instance.register('RegClientConcurrency', { useValue: regClientConcurrency });
+    const inputs = buildInputs();
+    prepareContainer();
     const action = instance.resolve(Action);
     try {
         await action.run(inputs);
@@ -31839,6 +31928,44 @@ async function run() {
             core.setFailed(error.message);
         }
     }
+}
+function buildInputs() {
+    return {
+        sourceRepository: coreExports.getInput('sourceRepository', {
+            required: true
+        }),
+        loginToSourceRepository: parseLoginToInput(coreExports.getInput('loginToSourceRepository', { required: false })),
+        sourceRepositoryUsername: coreExports.getInput('sourceRepositoryUsername', {
+            required: false
+        }),
+        sourceRepositoryPassword: coreExports.getInput('sourceRepositoryPassword', {
+            required: false
+        }),
+        targetRepository: coreExports.getInput('targetRepository', {
+            required: true
+        }),
+        loginToTargetRepository: parseLoginToInput(coreExports.getInput('loginToTargetRepository', { required: false })),
+        targetRepositoryUsername: coreExports.getInput('targetRepositoryUsername', {
+            required: false
+        }),
+        targetRepositoryPassword: coreExports.getInput('targetRepositoryPassword', {
+            required: false
+        }),
+        tags: coreExports.getInput('tags', { required: false })
+    };
+}
+function prepareContainer() {
+    const regClientConcurrencyInput = coreExports.getInput('regClientConcurrency', {
+        required: false
+    });
+    const regClientConcurrency = parseInt(regClientConcurrencyInput);
+    if (isNaN(regClientConcurrency) || regClientConcurrency <= 0) {
+        throw new Error('regClientConcurrency must be a positive integer greater than 0');
+    }
+    instance.register('RegClientConcurrency', { useValue: regClientConcurrency });
+}
+function parseLoginToInput(input) {
+    return input === 'true' || input === '1';
 }
 
 /* istanbul ignore next */

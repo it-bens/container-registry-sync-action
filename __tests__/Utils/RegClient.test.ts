@@ -38,6 +38,65 @@ describe('RegClient', () => {
     ])
   })
 
+  it('should log into registry with provided credentials', async () => {
+    const credentials = {
+      registry: 'test-registry',
+      username: 'test-username',
+      password: 'test-password'
+    }
+
+    mockedExec.exec = jest.fn() as jest.MockedFunction<
+      typeof Exec.prototype.exec
+    >
+
+    const regClient = new RegClient(
+      mockedExec,
+      new RegClientConcurrencyLimiter()
+    )
+
+    await regClient.logIntoRegistry(credentials)
+
+    expect(mockedExec.exec).toHaveBeenCalledWith(
+      'regctl',
+      [
+        'registry',
+        'login',
+        'test-registry',
+        '-u',
+        'test-username',
+        '--pass-stdin'
+      ],
+      {
+        input: Buffer.from('test-password')
+      }
+    )
+  })
+
+  it('should logout from registry with provided credentials', async () => {
+    const credentials = {
+      registry: 'test-registry',
+      username: 'test-username',
+      password: 'test-password'
+    }
+
+    mockedExec.exec = jest.fn() as jest.MockedFunction<
+      typeof Exec.prototype.exec
+    >
+
+    const regClient = new RegClient(
+      mockedExec,
+      new RegClientConcurrencyLimiter()
+    )
+
+    await regClient.logoutFromRegistry(credentials)
+
+    expect(mockedExec.exec).toHaveBeenCalledWith('regctl', [
+      'registry',
+      'logout',
+      'test-registry'
+    ])
+  })
+
   it('should copy image from source to target', async () => {
     const sourceRepository = 'source-repo'
     const sourceTag = 'v1.0.0'
