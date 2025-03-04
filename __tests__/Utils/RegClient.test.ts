@@ -31,11 +31,11 @@ describe('RegClient', () => {
 
     const result = await regClient.listTagsInRepository(repository)
     expect(result).toEqual(['v1.0.0', 'v1.1.0', 'latest'])
-    expect(mockedExec.getExecOutput).toHaveBeenCalledWith('regctl', [
-      'tag',
-      'ls',
-      repository
-    ])
+    expect(mockedExec.getExecOutput).toHaveBeenCalledWith(
+      'regctl',
+      ['tag', 'ls', repository],
+      { silent: true }
+    )
   })
 
   it('should log into registry with provided credentials', async () => {

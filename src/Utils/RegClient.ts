@@ -13,11 +13,11 @@ export class RegClient {
   ) {}
 
   public async listTagsInRepository(repository: string): Promise<string[]> {
-    const output = await this.exec.getExecOutput('regctl', [
-      'tag',
-      'ls',
-      repository
-    ])
+    const output = await this.exec.getExecOutput(
+      'regctl',
+      ['tag', 'ls', repository],
+      { silent: true }
+    )
     return output.stdout.trim().split('\n')
   }
 

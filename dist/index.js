@@ -29644,11 +29644,7 @@ let RegClient = class RegClient {
         this.concurrencyLimiter = concurrencyLimiter;
     }
     async listTagsInRepository(repository) {
-        const output = await this.exec.getExecOutput('regctl', [
-            'tag',
-            'ls',
-            repository
-        ]);
+        const output = await this.exec.getExecOutput('regctl', ['tag', 'ls', repository], { silent: true });
         return output.stdout.trim().split('\n');
     }
     async logIntoRegistry(credentials) {
