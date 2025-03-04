@@ -54,4 +54,8 @@ export class Action {
       )
     }
   }
+
+  async post(inputs: Inputs) {
+    await this.loginAction.post(inputs)
+  }
 }

@@ -6,7 +6,37 @@ import { Inputs } from './Inputs.js'
 import { container } from 'tsyringe'
 
 export async function run() {
-  const inputs: Inputs = {
+  const inputs = buildInputs()
+  prepareContainer()
+  const action = container.resolve(Action)
+
+  try {
+    await action.run(inputs)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      const core = container.resolve(Core)
+      core.setFailed(error.message)
+    }
+  }
+}
+
+export async function post() {
+  const inputs = buildInputs()
+  prepareContainer()
+  const action = container.resolve(Action)
+
+  try {
+    await action.post(inputs)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      const core = container.resolve(Core)
+      core.setFailed(error.message)
+    }
+  }
+}
+
+function buildInputs(): Inputs {
+  return {
     sourceRepository: core.getInput('sourceRepository', {
       required: true
     }),
@@ -33,7 +63,9 @@ export async function run() {
     }),
     tags: core.getInput('tags', { required: false })
   }
+}
 
+function prepareContainer() {
   const regClientConcurrencyInput = core.getInput('regClientConcurrency', {
     required: false
   })
@@ -44,19 +76,8 @@ export async function run() {
     )
   }
   container.register('RegClientConcurrency', { useValue: regClientConcurrency })
+}
 
-  const action = container.resolve(Action)
-
-  try {
-    await action.run(inputs)
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      const core = container.resolve(Core)
-      core.setFailed(error.message)
-    }
-  }
-
-  function parseLoginToInput(input: string): boolean {
-    return input === 'true' || input === '1'
-  }
+function parseLoginToInput(input: string): boolean {
+  return input === 'true' || input === '1'
 }

@@ -34,6 +34,9 @@ describe('Login/Action', () => {
     mockedRegClient.logIntoRegistry = jest.fn() as jest.MockedFunction<
       typeof RegClient.prototype.logIntoRegistry
     >
+    mockedRegClient.logoutFromRegistry = jest.fn() as jest.MockedFunction<
+      typeof RegClient.prototype.logoutFromRegistry
+    >
 
     action = new Action(
       mockedRegClientCredentialsBuilder,
@@ -176,6 +179,38 @@ describe('Login/Action', () => {
     await action.run(inputs)
 
     expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledWith(
+      credentials.target
+    )
+  })
+
+  it('should log out from source and target repositories if loginToSourceRepository and loginToTargetRepository are true', async () => {
+    const inputs: Inputs = {
+      sourceRepository: 'source/repo',
+      loginToSourceRepository: true,
+      sourceRepositoryUsername: 'sourceUser',
+      sourceRepositoryPassword: 'sourcePass',
+      targetRepository: 'target/repo',
+      loginToTargetRepository: true,
+      targetRepositoryUsername: 'targetUser',
+      targetRepositoryPassword: 'targetPass',
+      tags: 'latest'
+    }
+
+    const credentials = new RegClientCredentialsBuilder().build(inputs)
+    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+
+    await action.post(inputs)
+
+    expect(mockedLogger.info).toHaveBeenCalledWith(
+      'Logging out from source repository.'
+    )
+    expect(mockedLogger.info).toHaveBeenCalledWith(
+      'Logging out from target repository.'
+    )
+    expect(mockedRegClient.logoutFromRegistry).toHaveBeenCalledWith(
+      credentials.source
+    )
+    expect(mockedRegClient.logoutFromRegistry).toHaveBeenCalledWith(
       credentials.target
     )
   })

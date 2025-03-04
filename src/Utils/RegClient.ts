@@ -37,6 +37,18 @@ export class RegClient {
     })
   }
 
+  public async logoutFromRegistry(
+    credentials: RegClientCredentials
+  ): Promise<void> {
+    const args = ['registry', 'logout']
+
+    if (credentials.registry !== null) {
+      args.push(credentials.registry)
+    }
+
+    await this.exec.exec('regctl', args)
+  }
+
   public async copyImageFromSourceToTarget(
     sourceRepository: string,
     sourceTag: string,

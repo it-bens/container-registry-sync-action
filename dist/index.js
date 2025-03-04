@@ -29661,6 +29661,13 @@ let RegClient = class RegClient {
             input: Buffer.from(credentials.password)
         });
     }
+    async logoutFromRegistry(credentials) {
+        const args = ['registry', 'logout'];
+        if (credentials.registry !== null) {
+            args.push(credentials.registry);
+        }
+        await this.exec.exec('regctl', args);
+    }
     async copyImageFromSourceToTarget(sourceRepository, sourceTag, targetRepository, targetTag) {
         await this.concurrencyLimiter.execute(() => this.exec.exec('regctl', [
             'image',
@@ -29734,6 +29741,16 @@ let Action$1 = class Action {
         }
         else {
             await this.regClient.logIntoRegistry(regClientCredentials.target);
+        }
+    }
+    async post(inputs) {
+        if (inputs.loginToSourceRepository) {
+            this.logger.info('Logging out from source repository.');
+            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).source);
+        }
+        if (inputs.loginToTargetRepository) {
+            this.logger.info('Logging out from target repository.');
+            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).target);
         }
     }
 };
@@ -31880,6 +31897,9 @@ let Action = class Action {
             await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
         }
     }
+    async post(inputs) {
+        await this.loginAction.post(inputs);
+    }
 };
 Action = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
@@ -31896,7 +31916,21 @@ Action = __decorate([
 ], Action);
 
 async function run() {
-    const inputs = {
+    const inputs = buildInputs();
+    prepareContainer();
+    const action = instance.resolve(Action);
+    try {
+        await action.run(inputs);
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            const core = instance.resolve(Core);
+            core.setFailed(error.message);
+        }
+    }
+}
+function buildInputs() {
+    return {
         sourceRepository: coreExports.getInput('sourceRepository', {
             required: true
         }),
@@ -31919,6 +31953,8 @@ async function run() {
         }),
         tags: coreExports.getInput('tags', { required: false })
     };
+}
+function prepareContainer() {
     const regClientConcurrencyInput = coreExports.getInput('regClientConcurrency', {
         required: false
     });
@@ -31927,19 +31963,9 @@ async function run() {
         throw new Error('regClientConcurrency must be a positive integer greater than 0');
     }
     instance.register('RegClientConcurrency', { useValue: regClientConcurrency });
-    const action = instance.resolve(Action);
-    try {
-        await action.run(inputs);
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            const core = instance.resolve(Core);
-            core.setFailed(error.message);
-        }
-    }
-    function parseLoginToInput(input) {
-        return input === 'true' || input === '1';
-    }
+}
+function parseLoginToInput(input) {
+    return input === 'true' || input === '1';
 }
 
 /* istanbul ignore next */

@@ -8,4 +8,5 @@ export declare class Action {
     private readonly logger;
     constructor(credentialsBuilder: RegClientCredentialsBuilder, regClient: RegClient, logger: Logger);
     run(inputs: Inputs): Promise<void>;
+    post(inputs: Inputs): Promise<void>;
 }

@@ -12,4 +12,5 @@ export declare class Action {
     private readonly logger;
     constructor(loginAction: LoginAction, regClient: RegClient, tagFilter: TagFilter, tagSorter: TagSorter, logger: Logger);
     run(inputs: Inputs): Promise<void>;
+    post(inputs: Inputs): Promise<void>;
 }

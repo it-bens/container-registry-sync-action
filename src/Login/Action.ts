@@ -44,4 +44,20 @@ export class Action {
       await this.regClient.logIntoRegistry(regClientCredentials.target)
     }
   }
+
+  async post(inputs: Inputs): Promise<void> {
+    if (inputs.loginToSourceRepository) {
+      this.logger.info('Logging out from source repository.')
+      await this.regClient.logoutFromRegistry(
+        this.credentialsBuilder.build(inputs).source
+      )
+    }
+
+    if (inputs.loginToTargetRepository) {
+      this.logger.info('Logging out from target repository.')
+      await this.regClient.logoutFromRegistry(
+        this.credentialsBuilder.build(inputs).target
+      )
+    }
+  }
 }
