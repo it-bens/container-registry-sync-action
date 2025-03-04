@@ -1,7 +1,7 @@
 {
   "name": "container-registry-sync-action",
   "description": "GitHub Action to sync images between registries",
-  "version": "v0.2.0",
+  "version": "v0.3.0",
   "author": "Martin Bens",
   "type": "module",
   "private": true,
