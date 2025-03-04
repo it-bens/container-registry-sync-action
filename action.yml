@@ -1,5 +1,6 @@
 name: Container Registry Sync
-description: Sync images between container registries
+description:
+  Sync docker images between container registries or inside the same registry
 author: Martin Bens
 
 branding:
