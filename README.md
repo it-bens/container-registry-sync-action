@@ -21,8 +21,8 @@ already present in the target repository.
 
 The action relies on the availability of `regclient` (`regctl` as the CLI
 interface) on the runner. It has to be set up before the action is executed. A
-registry login might be required as well. RegClient provides actions to install
-it and to login it into a registry.
+registry login might be required as well. It can be done before the action is
+executed like below or by the action itself.
 
 ```yaml
 jobs:
@@ -32,7 +32,22 @@ jobs:
     steps:
       - name: Install regctl
         uses: regclient/actions/regctl-installer@main
+```
 
+#### Authentication
+
+The login to the registries can be done in two ways: 1) with docker and 2) with
+regclient.
+
+##### Docker login
+
+```yaml
+jobs:
+  sync-images:
+    name: Sync images from DockerHub to GHCR
+    runs-on: ubuntu-24.04
+    steps:
+      # ...
       - name: Login to DockerHub
         uses: regclient/actions/regctl-login@main
         with:
@@ -48,18 +63,24 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-The login to DockerHub is optional but recommended to prevent the mentioned pull
-rate limiting issues. On the other hand, the login to the GitHub Container
-Registry is mandatory to push the images.
+##### regclient login
+
+See [Example](#example)
 
 ### Inputs
 
-| name                 | description                                                                                                                 | required | default |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
-| sourceRepository     | Repository to sync from                                                                                                     | yes      |         |
-| targetRepository     | Repository to sync to                                                                                                       | yes      |         |
-| tags                 | Glob pattern to filter which tags to sync (e.g., 'v*' for version tags, '*-stable' for stable tags) based on DockerHub tags | no       | '\*'    |
-| regClientConcurrency | Number of concurrent regclient copy operations                                                                              | no       | 2       |
+| name                     | description                                                                                                                 | required | default |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------- | -------- | ------- |
+| sourceRepository         | Repository to sync from                                                                                                     | yes      |         |
+| loginToSourceRepository  | Whether to log in to the source repository                                                                                  | no       | 'false  |
+| sourceRepositoryUsername | Username for the source repository                                                                                          | no       |         |
+| sourceRepositoryPassword | Password for the source repository                                                                                          | no       |         |
+| targetRepository         | Repository to sync to                                                                                                       | yes      |         |
+| loginToTargetRepository  | Whether to log in to the target repository                                                                                  | no       | 'false' |
+| targetRepositoryUsername | Username for the target repository                                                                                          | no       |         |
+| targetRepositoryPassword | Password for the target repository                                                                                          | no       |         |
+| tags                     | Glob pattern to filter which tags to sync (e.g., 'v*' for version tags, '*-stable' for stable tags) based on DockerHub tags | no       | '\*'    |
+| regClientConcurrency     | Number of concurrent regclient copy operations                                                                              | no       | 2       |
 
 ### Example
 
@@ -74,7 +95,13 @@ jobs:
         uses: it-bens/container-registry-sync-action@main
         with:
           sourceRepository: 'dockware/dev'
+          loginToSourceRepository: 'true'
+          sourceRepositoryUsername: ${{ secrets.DOCKERHUB_USERNAME }}
+          sourceRepositoryPassword: ${{ secrets.DOCKERHUB_TOKEN }}
           targetRepository: 'ghcr.io/dockware-mirror/dev'
+          loginToTargetRepository: 'true'
+          targetRepositoryUsername: ${{ github.actor }}
+          targetRepositoryPassword: ${{ secrets.GITHUB_TOKEN }}
           tags: '6.6.*'
           regClientConcurrency: 1
 ```

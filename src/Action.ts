@@ -1,6 +1,7 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
 import { Inputs } from './Inputs.js'
 import { Logger } from './Utils/Logger.js'
+import { Action as LoginAction } from './Login/Action.js'
 import { RegClient } from './Utils/RegClient.js'
 import { TagFilter } from './Utils/TagFilter.js'
 import { TagSorter } from './Utils/TagSorter.js'
@@ -8,6 +9,8 @@ import { TagSorter } from './Utils/TagSorter.js'
 @scoped(Lifecycle.ContainerScoped)
 export class Action {
   constructor(
+    @inject(LoginAction)
+    private readonly loginAction: LoginAction,
     @inject(RegClient)
     private readonly regClient: RegClient,
     @inject(TagFilter)
@@ -19,6 +22,8 @@ export class Action {
   ) {}
 
   async run(inputs: Inputs) {
+    await this.loginAction.run(inputs)
+
     const sourceRepositoryTags = await this.regClient.listTagsInRepository(
       inputs.sourceRepository
     )

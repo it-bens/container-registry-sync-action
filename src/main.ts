@@ -10,8 +10,26 @@ export async function run() {
     sourceRepository: core.getInput('sourceRepository', {
       required: true
     }),
+    loginToSourceRepository: parseLoginToInput(
+      core.getInput('loginToSourceRepository', { required: false })
+    ),
+    sourceRepositoryUsername: core.getInput('sourceRepositoryUsername', {
+      required: false
+    }),
+    sourceRepositoryPassword: core.getInput('sourceRepositoryPassword', {
+      required: false
+    }),
     targetRepository: core.getInput('targetRepository', {
       required: true
+    }),
+    loginToTargetRepository: parseLoginToInput(
+      core.getInput('loginToTargetRepository', { required: false })
+    ),
+    targetRepositoryUsername: core.getInput('targetRepositoryUsername', {
+      required: false
+    }),
+    targetRepositoryPassword: core.getInput('targetRepositoryPassword', {
+      required: false
     }),
     tags: core.getInput('tags', { required: false })
   }
@@ -36,5 +54,9 @@ export async function run() {
       const core = container.resolve(Core)
       core.setFailed(error.message)
     }
+  }
+
+  function parseLoginToInput(input: string): boolean {
+    return input === 'true' || input === '1'
   }
 }

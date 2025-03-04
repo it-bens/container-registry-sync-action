@@ -1,6 +1,7 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
 import { Exec } from './GitHubAction/Exec.js'
 import { RegClientConcurrencyLimiter } from './RegClientConcurrencyLimiter.js'
+import { RegClientCredentials } from './RegClientCredentials.js'
 
 @scoped(Lifecycle.ContainerScoped)
 export class RegClient {
@@ -18,6 +19,22 @@ export class RegClient {
       repository
     ])
     return output.stdout.trim().split('\n')
+  }
+
+  public async logIntoRegistry(
+    credentials: RegClientCredentials
+  ): Promise<void> {
+    const args = ['registry', 'login']
+
+    if (credentials.registry !== null) {
+      args.push(credentials.registry)
+    }
+
+    args.push('-u', credentials.username, '--pass-stdin')
+
+    await this.exec.exec('regctl', args, {
+      input: Buffer.from(credentials.password)
+    })
   }
 
   public async copyImageFromSourceToTarget(
