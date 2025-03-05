@@ -18,6 +18,8 @@ any layers that are already present in the target repository.
 
 The action can also be used to copy images within the same registry.
 
+![screenshot of a running action](./docs/action.jpg)
+
 ## Usage
 
 ### Prerequisites
