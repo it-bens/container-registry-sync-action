@@ -46,6 +46,6 @@ inputs:
     default: '2'
 
 runs:
-  using: node20
+  using: node22
   main: dist/index.js
   post: dist/post.js
