@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "vulnerabilityAlerts": { "labels": ["security"], "schedule": "at any time" },
+  "ignoreUnstable": true,
+  "minimumReleaseAge": "7 days",
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": { "enabled": true },
+  "packageRules": [
+    {
+      "matchDatasources": ["github-tags"],
+      "groupName": "github workflow actions",
+      "schedule": ["every weekend"]
+    },
+    {
+      "matchDatasources": ["npm"],
+      "groupName": "NPM dependencies",
+      "schedule": ["every weekend"]
+    },
+    { "matchDepTypes": ["dependencies"], "groupName": "Dependencies" },
+    { "matchDepTypes": ["devDependencies"], "groupName": "Dev Dependencies" }
+  ]
+}
