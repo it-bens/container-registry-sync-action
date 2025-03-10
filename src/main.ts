@@ -1,13 +1,14 @@
 import 'reflect-metadata'
-import * as core from '@actions/core'
 import { Action } from './Action.js'
 import { Core } from './Utils/GitHubAction/Core.js'
 import { Inputs } from './Inputs.js'
 import { container } from 'tsyringe'
 
 export async function run() {
-  const inputs = buildInputs()
-  prepareContainer()
+  const core = container.resolve(Core)
+  prepareContainer(core)
+  const inputs = buildInputs(core)
+
   const action = container.resolve(Action)
 
   try {
@@ -21,8 +22,10 @@ export async function run() {
 }
 
 export async function post() {
-  const inputs = buildInputs()
-  prepareContainer()
+  const core = container.resolve(Core)
+  prepareContainer(core)
+  const inputs = buildInputs(core)
+
   const action = container.resolve(Action)
 
   try {
@@ -35,7 +38,7 @@ export async function post() {
   }
 }
 
-function buildInputs(): Inputs {
+function buildInputs(core: Core): Inputs {
   return {
     sourceRepository: core.getInput('sourceRepository', {
       required: true
@@ -65,7 +68,7 @@ function buildInputs(): Inputs {
   }
 }
 
-function prepareContainer() {
+function prepareContainer(core: Core) {
   const regClientConcurrencyInput = core.getInput('regClientConcurrency', {
     required: false
   })
