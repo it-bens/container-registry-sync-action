@@ -49,4 +49,18 @@ export class Logger {
       this.core.info(message.slice(0, -2)) // Log the remaining tags
     }
   }
+
+  public logRegCtlCouldNotBeDeleted(path: string): void {
+    this.core.error(`regctl could not be deleted from ${path}`)
+  }
+
+  public logRegCtlInstalled(installationPath: string, version: string): void {
+    this.core.info(
+      `regctl version ${version} was installed to ${installationPath}`
+    )
+  }
+
+  public logRegCtlNotInstalledYet(): void {
+    this.core.info('regctl is not installed yet but it will be installed now.')
+  }
 }

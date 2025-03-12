@@ -1,7 +1,7 @@
 import require$$0 from 'os';
 import require$$0$1 from 'crypto';
 import require$$1 from 'fs';
-import require$$1$5 from 'path';
+import require$$1$5, { dirname, basename as basename$1 } from 'path';
 import require$$2 from 'http';
 import require$$3 from 'https';
 import require$$0$4 from 'net';
@@ -29422,11 +29422,23 @@ function requireCore () {
 var coreExports = requireCore();
 
 let Core = class Core {
+    addPath(inputPath) {
+        coreExports.addPath(inputPath);
+    }
+    error(message) {
+        coreExports.error(message);
+    }
     getInput(name, options) {
         return coreExports.getInput(name, options);
     }
     info(message) {
         coreExports.info(message);
+    }
+    platform() {
+        return coreExports.platform.platform;
+    }
+    platformArch() {
+        return coreExports.platform.arch;
     }
     setFailed(message) {
         coreExports.setFailed(message);
@@ -29435,6 +29447,64 @@ let Core = class Core {
 Core = __decorate([
     scoped(Lifecycle$1.ContainerScoped)
 ], Core);
+
+var dist = {};
+
+var hasRequiredDist;
+
+function requireDist () {
+	if (hasRequiredDist) return dist;
+	hasRequiredDist = 1;
+	(function (exports) {
+Object.defineProperty(exports,'__esModule',{value:true}),exports.DownloaderHelper=exports.DH_STATES=void 0;var _typeof='function'==typeof Symbol&&'symbol'==typeof Symbol.iterator?function(a){return typeof a}:function(a){return a&&'function'==typeof Symbol&&a.constructor===Symbol&&a!==Symbol.prototype?'symbol':typeof a},_createClass=function(){function a(a,b){for(var c,d=0;d<b.length;d++)c=b[d],c.enumerable=c.enumerable||false,c.configurable=true,'value'in c&&(c.writable=true),Object.defineProperty(a,c.key,c);}return function(b,c,d){return c&&a(b.prototype,c),d&&a(b,d),b}}(),_fs=require$$1,fs=_interopRequireWildcard(_fs),_url=require$$1$4,_path=require$$1$5,path=_interopRequireWildcard(_path),_http=require$$2,http=_interopRequireWildcard(_http),_https=require$$3,https=_interopRequireWildcard(_https),_events=require$$4;function _interopRequireWildcard(a){if(a&&a.__esModule)return a;var b={};if(null!=a)for(var c in a)Object.prototype.hasOwnProperty.call(a,c)&&(b[c]=a[c]);return b.default=a,b}function _classCallCheck(a,b){if(!(a instanceof b))throw new TypeError('Cannot call a class as a function')}function _possibleConstructorReturn(a,b){if(!a)throw new ReferenceError('this hasn\'t been initialised - super() hasn\'t been called');return b&&('object'==typeof b||'function'==typeof b)?b:a}function _inherits(a,b){if('function'!=typeof b&&null!==b)throw new TypeError('Super expression must either be null or a function, not '+typeof b);a.prototype=Object.create(b&&b.prototype,{constructor:{value:a,enumerable:false,writable:true,configurable:true}}),b&&(Object.setPrototypeOf?Object.setPrototypeOf(a,b):a.__proto__=b);}var DH_STATES=exports.DH_STATES={IDLE:'IDLE',SKIPPED:'SKIPPED',STARTED:'STARTED',DOWNLOADING:'DOWNLOADING',RETRY:'RETRY',PAUSED:'PAUSED',RESUMED:'RESUMED',STOPPED:'STOPPED',FINISHED:'FINISHED',FAILED:'FAILED'};exports.DownloaderHelper=function(a){function b(a,c){var d=2<arguments.length&&void 0!==arguments[2]?arguments[2]:{};_classCallCheck(this,b);var e=_possibleConstructorReturn(this,(b.__proto__||Object.getPrototypeOf(b)).call(this,{captureRejections:true}));return e.__validate(a,c)?(e.url=e.requestURL=a.trim(),e.state=DH_STATES.IDLE,e.__defaultOpts={body:null,retry:false,method:'GET',headers:{},fileName:'',timeout:-1,metadata:null,override:false,forceResume:false,removeOnStop:true,removeOnFail:true,progressThrottle:1e3,httpRequestOptions:{},httpsRequestOptions:{},resumeOnIncomplete:true,resumeIfFileExists:false,resumeOnIncompleteMaxRetry:5},e.__opts=Object.assign({},e.__defaultOpts),e.__pipes=[],e.__total=0,e.__downloaded=0,e.__progress=0,e.__retryCount=0,e.__retryTimeout=null,e.__resumeRetryCount=0,e.__states=DH_STATES,e.__promise=null,e.__request=null,e.__response=null,e.__isAborted=false,e.__isResumed=false,e.__isResumable=false,e.__isRedirected=false,e.__destFolder=c,e.__statsEstimate={time:0,bytes:0,prevBytes:0,throttleTime:0},e.__fileName='',e.__filePath='',e.updateOptions(d),e):_possibleConstructorReturn(e)}return _inherits(b,a),_createClass(b,[{key:'start',value:function c(){var a=this,b=function(){return new Promise(function(b,c){a.__promise={resolve:b,reject:c},a.__start();})};return this.__opts.resumeIfFileExists&&this.state!==this.__states.RESUMED?this.getTotalSize().then(function(c){var d=c.name,e=c.total,f=a.__opts.override;if(a.__opts.override=true,a.__filePath=a.__getFilePath(d),a.__opts.override=f,a.__filePath&&fs.existsSync(a.__filePath)){var g=a.__getFilesizeInBytes(a.__filePath);return g===e?b():a.resumeFromFile(a.__filePath,{total:e,fileName:d})}return b()}):b()}},{key:'pause',value:function b(){var a=this;return this.state===this.__states.STOPPED?Promise.resolve(true):(this.__response&&(this.__response.unpipe(),this.__pipes.forEach(function(a){return a.stream.unpipe()})),this.__fileStream&&this.__fileStream.removeAllListeners(),this.__requestAbort(),this.__closeFileStream().then(function(){return a.__setState(a.__states.PAUSED),a.emit('pause'),true}))}},{key:'resume',value:function a(){return this.__promise?this.state===this.__states.STOPPED?Promise.resolve(false):(this.__setState(this.__states.RESUMED),this.__isResumable&&(this.__isResumed=true,this.__reqOptions.headers.range='bytes='+this.__downloaded+'-'),this.emit('resume',this.__isResumed),this.__start()):this.start()}},{key:'stop',value:function c(){var a=this;if(this.state===this.__states.STOPPED)return Promise.resolve(true);var b=function(){return new Promise(function(b,c){fs.access(a.__filePath,function(d){return d?(a.__emitStop(),b(true)):void fs.unlink(a.__filePath,function(d){return d?(a.__setState(a.__states.FAILED),a.emit('error',d),c(d)):void(a.__emitStop(),b(true))})});})};return this.__requestAbort(),this.__closeFileStream().then(function(){return a.__opts.removeOnStop?b():(a.__emitStop(),Promise.resolve(true))})}},{key:'pipe',value:function c(a){var b=1<arguments.length&&void 0!==arguments[1]?arguments[1]:null;return this.__pipes.push({stream:a,options:b}),a}},{key:'unpipe',value:function d(){var a=this,b=0<arguments.length&&void 0!==arguments[0]?arguments[0]:null,c=function(b){return a.__response?a.__response.unpipe(b):b.unpipe()};if(b){var e=this.__pipes.find(function(a){return a.stream===b});return void(e&&(c(b),this.__pipes=this.__pipes.filter(function(a){return a.stream!==b})))}this.__pipes.forEach(function(a){return c(a.stream)}),this.__pipes=[];}},{key:'getDownloadPath',value:function a(){return this.__filePath}},{key:'isResumable',value:function a(){return this.__isResumable}},{key:'updateOptions',value:function c(a){var b=1<arguments.length&&void 0!==arguments[1]?arguments[1]:'';this.__opts=Object.assign({},this.__opts,a),this.__headers=this.__opts.headers,-1<this.__opts.timeout&&(this.__opts.httpRequestOptions.timeout=this.__opts.timeout,this.__opts.httpsRequestOptions.timeout=this.__opts.timeout),('number'!=typeof this.__opts.progressThrottle||0>this.__opts.progressThrottle)&&(this.__opts.progressThrottle=this.__defaultOpts.progressThrottle),this.url=b||this.url,this.__reqOptions=this.__getReqOptions(this.__opts.method,this.url,this.__opts.headers),this.__initProtocol(this.url);}},{key:'getOptions',value:function a(){return this.__opts}},{key:'getMetadata',value:function a(){return this.__opts.metadata}},{key:'getStats',value:function a(){return {total:this.__total,name:this.__fileName,downloaded:this.__downloaded,progress:this.__progress,speed:this.__statsEstimate.bytes}}},{key:'getTotalSize',value:function b(){var a=this;return new Promise(function(b,c){var d=function(b){a.__initProtocol(b);var c=Object.assign({},a.__headers);c.hasOwnProperty('range')&&delete c.range;var d=a.__getReqOptions('HEAD',b,c);return Object.assign({},a.__reqOptions,d)},e=function(f,g){var h=a.__protocol.request(g,function(g){if(a.__isRequireRedirect(g)){var h=/^https?:\/\//.test(g.headers.location)?g.headers.location:new _url.URL(g.headers.location,f).href;return a.emit('redirected',h,f),e(h,d(h))}return 200===g.statusCode?void b({name:a.__getFileNameFromHeaders(g.headers,g),total:parseInt(g.headers['content-length'])||null}):c(new Error('Response status was '+g.statusCode))});h.on('error',function(a){return c(a)}),h.on('timeout',function(){return c(new Error('timeout'))}),h.on('uncaughtException',function(a){return c(a)}),h.end();};e(a.url,d(a.url));})}},{key:'getResumeState',value:function a(){return {downloaded:this.__downloaded,filePath:this.__filePath,fileName:this.__fileName,total:this.__total}}},{key:'resumeFromFile',value:function d(a){var b=this,c=1<arguments.length&&void 0!==arguments[1]?arguments[1]:{};return this.__opts.override=true,this.__filePath=a,(c.total&&c.fileName?Promise.resolve({name:c.fileName,total:c.total}):this.getTotalSize()).then(function(a){var d=a.name,e=a.total;return b.__total=c.total||e,b.__fileName=c.fileName||d,b.__downloaded=c.downloaded||b.__getFilesizeInBytes(b.__filePath),b.__reqOptions.headers.range='bytes='+b.__downloaded+'-',b.__isResumed=true,b.__isResumable=true,b.__setState(b.__states.RESUMED),b.emit('resume',b.__isResumed),new Promise(function(a,c){b.__promise={resolve:a,reject:c},b.__start();})})}},{key:'__start',value:function a(){this.__isRedirected||this.state===this.__states.RESUMED||(this.emit('start'),this.__setState(this.__states.STARTED),this.__initProtocol(this.url)),this.__response=null,this.__isAborted=false,this.__request&&!this.__request.destroyed&&this.__request.destroy(),this.__retryTimeout&&(clearTimeout(this.__retryTimeout),this.__retryTimeout=null),this.__request=this.__downloadRequest(this.__promise.resolve,this.__promise.reject),this.__request.on('error',this.__onError(this.__promise.resolve,this.__promise.reject)),this.__request.on('timeout',this.__onTimeout(this.__promise.resolve,this.__promise.reject)),this.__request.on('uncaughtException',this.__onError(this.__promise.resolve,this.__promise.reject,true)),this.__opts.body&&this.__request.write(this.__opts.body),this.__request.end();}},{key:'__resolvePending',value:function b(){if(this.__promise){var a=this.__promise.resolve;return this.__promise=null,a(true)}}},{key:'__downloadRequest',value:function d(a,b){var c=this;return this.__protocol.request(this.__reqOptions,function(d){if(c.__response=d,c.__isResumed||(c.__total=parseInt(d.headers['content-length'])||null,c.__resetStats()),c.__isRequireRedirect(d)){var e=/^https?:\/\//.test(d.headers.location)?d.headers.location:new _url.URL(d.headers.location,c.url).href;return c.__isRedirected=true,c.__initProtocol(e),c.emit('redirected',e,c.url),c.__start()}if(200!==d.statusCode&&206!==d.statusCode){var f=new Error('Response status was '+d.statusCode);return f.status=d.statusCode||0,f.body=d.body||'',c.__setState(c.__states.FAILED),c.emit('error',f),b(f)}c.__opts.forceResume?c.__isResumable=true:d.headers.hasOwnProperty('accept-ranges')&&'none'!==d.headers['accept-ranges']&&(c.__isResumable=true),c.__startDownload(d,a,b);})}},{key:'__startDownload',value:function h(a,b,c){var d=this,e=a;if(!this.__isResumed){var i=this.__getFileNameFromHeaders(a.headers);if(this.__filePath=this.__getFilePath(i),this.__fileName=this.__filePath.split(path.sep).pop(),fs.existsSync(this.__filePath)){var f=this.__getFilesizeInBytes(this.__filePath),g=this.__total?this.__total:0;if('object'===_typeof(this.__opts.override)&&this.__opts.override.skip&&(this.__opts.override.skipSmaller||f>=g))return this.emit('skip',{totalSize:this.__total,fileName:this.__fileName,filePath:this.__filePath,downloadedSize:f}),this.__setState(this.__states.SKIPPED),b(true)}this.__fileStream=fs.createWriteStream(this.__filePath,{});}else this.__fileStream=fs.createWriteStream(this.__filePath,{flags:'a'});this.emit('download',{fileName:this.__fileName,filePath:this.__filePath,totalSize:this.__total,isResumed:this.__isResumed,downloadedSize:this.__downloaded}),this.__retryCount=0,this.__isResumed=false,this.__isRedirected=false,this.__setState(this.__states.DOWNLOADING),this.__statsEstimate.time=new Date,this.__statsEstimate.throttleTime=new Date,e.on('data',function(a){return d.__calculateStats(a.length)}),this.__pipes.forEach(function(a){e.pipe(a.stream,a.options),e=a.stream;}),e.pipe(this.__fileStream),e.on('error',this.__onError(b,c)),this.__fileStream.on('finish',this.__onFinished(b,c)),this.__fileStream.on('error',this.__onError(b,c));}},{key:'__hasFinished',value:function a(){return !this.__isAborted&&-1===[this.__states.PAUSED,this.__states.STOPPED,this.__states.RETRY,this.__states.FAILED,this.__states.RESUMED].indexOf(this.state)}},{key:'__isRequireRedirect',value:function b(a){return 300<a.statusCode&&400>a.statusCode&&a.headers.hasOwnProperty('location')&&a.headers.location}},{key:'__onFinished',value:function d(a,b){var c=this;return function(){c.__fileStream.close(function(d){if(d)return b(d);if(c.__hasFinished()){var e=!!c.__total&&c.__downloaded!==c.__total;if(e&&c.__isResumable&&c.__opts.resumeOnIncomplete&&c.__resumeRetryCount<=c.__opts.resumeOnIncompleteMaxRetry)return c.__resumeRetryCount++,c.emit('warning',new Error('uncomplete download, retrying')),c.resume();c.__setState(c.__states.FINISHED),c.__pipes=[],c.emit('end',{fileName:c.__fileName,filePath:c.__filePath,totalSize:c.__total,incomplete:e,onDiskSize:c.__getFilesizeInBytes(c.__filePath),downloadedSize:c.__downloaded});}return a(c.__downloaded===c.__total)});}}},{key:'__closeFileStream',value:function b(){var a=this;return this.__fileStream?new Promise(function(b,c){a.__fileStream.close(function(a){return a?c(a):b(true)});}):Promise.resolve(true)}},{key:'__onError',value:function e(a,b){var c=this,d=!!(2<arguments.length&&void 0!==arguments[2])&&arguments[2];return function(a){return c.__pipes=[],d&&c.__requestAbort(),c.state===c.__states.STOPPED||c.state===c.__states.FAILED?void 0:c.__opts.retry?c.__retry(a).catch(function(d){c.__removeFile().finally(function(){c.__setState(c.__states.FAILED),c.emit('error',d?d:a),b(d?d:a);});}):c.__removeFile().finally(function(){c.__setState(c.__states.FAILED),c.emit('error',a),b(a);})}}},{key:'__retry',value:function h(){var a=this,b=0<arguments.length&&void 0!==arguments[0]?arguments[0]:null;if(!this.__opts.retry||'object'!==_typeof(this.__opts.retry))return Promise.reject(b||new Error('wrong retry options'));var c=this.__opts.retry,d=c.delay,e=void 0===d?0:d,f=c.maxRetries,g=void 0===f?999:f;return this.__retryCount>=g?Promise.reject(b||new Error('reached the maximum retries')):(this.__retryCount++,this.__setState(this.__states.RETRY),this.emit('retry',this.__retryCount,this.__opts.retry,b),this.__response&&(this.__response.unpipe(),this.__pipes.forEach(function(a){return a.stream.unpipe()})),this.__fileStream&&this.__fileStream.removeAllListeners(),this.__requestAbort(),this.__closeFileStream().then(function(){return new Promise(function(b){return a.__retryTimeout=setTimeout(function(){return b(0<a.__downloaded?a.resume():a.__start())},e)})}))}},{key:'__onTimeout',value:function d(a,b){var c=this;return function(){return c.__requestAbort(),c.__opts.retry?c.__retry(new Error('timeout')).catch(function(a){c.__removeFile().finally(function(){c.__setState(c.__states.FAILED),a?b(a):(c.emit('timeout'),b(new Error('timeout')));});}):c.__removeFile().finally(function(){c.__setState(c.__states.FAILED),c.emit('timeout'),b(new Error('timeout'));})}}},{key:'__resetStats',value:function a(){this.__retryCount=0,this.__downloaded=0,this.__progress=0,this.__resumeRetryCount=0,this.__statsEstimate={time:0,bytes:0,prevBytes:0,throttleTime:0};}},{key:'__getFileNameFromHeaders',value:function k(a,b){var c='',d=/.*filename\*=.*?'.*?'([^"].+?[^"])(?:(?:;)|$)/i,e=/.*filename="(.*?)";?/i,f=/.*filename=([^"].+?[^"])(?:(?:;)|$)/i,g=a.hasOwnProperty('content-disposition'),h=g?a['content-disposition'].match(d):null,i=!g||h?null:a['content-disposition'].match(e),j=!g||h||i?null:a['content-disposition'].match(f);return g&&(h||i||j)?(c=a['content-disposition'],c=c.trim(),h?c=h[1]:i?c=i[1]:j&&(c=j[1]),c=c.replace(/[/\\]/g,'')):0<path.basename(new _url.URL(this.requestURL).pathname).length?c=path.basename(new _url.URL(this.requestURL).pathname):c=new _url.URL(this.requestURL).hostname+'.html',this.__opts.fileName?this.__getFileNameFromOpts(c,b):c.replace(/\.*$/,'')}},{key:'__getFilePath',value:function d(a){var b=path.join(this.__destFolder,a),c=b;return this.__opts.override||this.state===this.__states.RESUMED||(c=this.__uniqFileNameSync(c),b!==c&&this.emit('renamed',{path:c,fileName:c.split(path.sep).pop(),prevPath:b,prevFileName:b.split(path.sep).pop()})),c}},{key:'__getFileNameFromOpts',value:function g(a,b){if(!this.__opts.fileName)return a;if('string'==typeof this.__opts.fileName)return this.__opts.fileName;if('function'==typeof this.__opts.fileName){var h=path.join(this.__destFolder,a);return b&&b.headers||this.__response&&this.__response.headers?this.__opts.fileName(a,h,(b?b:this.__response).headers['content-type']):this.__opts.fileName(a,h)}if('object'===_typeof(this.__opts.fileName)){var c=this.__opts.fileName,d=c.name,e=!!c.hasOwnProperty('ext')&&c.ext;if('string'==typeof e)return d+'.'+e;if('boolean'==typeof e){if(e)return d;var f=a.includes('.')?a.split('.').pop():'';return ''===f?d:d+'.'+f}}return a}},{key:'__calculateStats',value:function f(a){var b=new Date,c=b-this.__statsEstimate.time,d=b-this.__statsEstimate.throttleTime,e=this.__total||0;a&&(this.__downloaded+=a,this.__progress=0===e?0:100*(this.__downloaded/e),(this.__downloaded===e||1e3<c)&&(this.__statsEstimate.time=b,this.__statsEstimate.bytes=this.__downloaded-this.__statsEstimate.prevBytes,this.__statsEstimate.prevBytes=this.__downloaded),(this.__downloaded===e||d>this.__opts.progressThrottle)&&(this.__statsEstimate.throttleTime=b,this.emit('progress.throttled',this.getStats())),this.emit('progress',this.getStats()));}},{key:'__setState',value:function b(a){this.state=a,this.emit('stateChanged',this.state);}},{key:'__getReqOptions',value:function f(a,b){var c=2<arguments.length&&void 0!==arguments[2]?arguments[2]:{},d=new _url.URL(b),e={protocol:d.protocol,host:d.hostname,port:d.port,path:d.pathname+d.search,method:a};return c&&(e.headers=c),e}},{key:'__getFilesizeInBytes',value:function d(a){try{var b=fs.statSync(a,{throwIfNoEntry:!1}),c=b.size||0;return c}catch(a){this.emit('warning',a);}return 0}},{key:'__validate',value:function d(a,b){if('string'!=typeof a)throw new Error('URL should be an string');if(''===a.trim())throw new Error('URL couldn\'t be empty');if('string'!=typeof b)throw new Error('Destination Folder should be an string');if(''===b.trim())throw new Error('Destination Folder couldn\'t be empty');if(!fs.existsSync(b))throw new Error('Destination Folder must exist');var c=fs.statSync(b);if(!c.isDirectory())throw new Error('Destination Folder must be a directory');try{fs.accessSync(b,fs.constants.W_OK);}catch(a){throw new Error('Destination Folder must be writable')}return  true}},{key:'__initProtocol',value:function c(a){var b=this.__getReqOptions(this.__opts.method,a,this.__headers);this.requestURL=a,-1<a.indexOf('https://')?(this.__protocol=https,b.agent=new https.Agent({keepAlive:false}),this.__reqOptions=Object.assign({},b,this.__opts.httpsRequestOptions)):(this.__protocol=http,b.agent=new http.Agent({keepAlive:false}),this.__reqOptions=Object.assign({},b,this.__opts.httpRequestOptions));}},{key:'__uniqFileNameSync',value:function f(a){if('string'!=typeof a||''===a)return a;try{fs.accessSync(a,fs.F_OK);var b=a.match(/(.*)(\([0-9]+\))(\..*)$/),c=b?b[1].trim():a,d=b?parseInt(b[2].replace(/\(|\)/,'')):0,e=a.split('.').pop();return e!==a&&0<e.length?(e='.'+e,c=c.replace(e,'')):e='',this.__uniqFileNameSync(c+' ('+ ++d+')'+e)}catch(b){return a}}},{key:'__removeFile',value:function b(){var a=this;return new Promise(function(b){return a.__fileStream?void a.__fileStream.close(function(c){return c&&a.emit('warning',c),a.__opts.removeOnFail?fs.access(a.__filePath,function(d){return d?b():void fs.unlink(a.__filePath,function(d){d&&a.emit('warning',c),b();})}):void b()}):b()})}},{key:'__requestAbort',value:function a(){this.__isAborted=true,this.__retryTimeout&&(clearTimeout(this.__retryTimeout),this.__retryTimeout=null),this.__response&&this.__response.destroy(),this.__request&&(this.__request.destroy?this.__request.destroy():this.__request.abort());}},{key:'__emitStop',value:function a(){this.__resolvePending(),this.__setState(this.__states.STOPPED),this.emit('stop');}}]),b}(_events.EventEmitter); 
+	} (dist));
+	return dist;
+}
+
+var distExports = requireDist();
+
+let Downloader = class Downloader {
+    async downloadFile(fileUrl, destination) {
+        const directory = dirname(destination);
+        const filename = basename$1(destination);
+        const downloadHelper = new distExports.DownloaderHelper(fileUrl, directory, {
+            fileName: filename,
+            override: true
+        });
+        return new Promise((resolve, reject) => {
+            downloadHelper.on('end', () => resolve());
+            downloadHelper.on('error', (err) => {
+                reject(new Error(`The download of ${filename} from ${fileUrl} failed: ${err.message} (status: ${err.status})`));
+            });
+            downloadHelper.start().catch(reject);
+        });
+    }
+};
+Downloader = __decorate([
+    injectable()
+], Downloader);
+
+var execExports = requireExec();
+
+let Exec = class Exec {
+    exec(commandLine, args, options) {
+        return execExports.exec(commandLine, args, options);
+    }
+    getExecOutput(commandLine, args, options) {
+        return execExports.getExecOutput(commandLine, args, options);
+    }
+};
+Exec = __decorate([
+    scoped(Lifecycle$1.ContainerScoped)
+], Exec);
+
+var ioExports = requireIo();
+
+class Io {
+    async mkdirP(path) {
+        await ioExports.mkdirP(path);
+    }
+}
 
 let Logger = class Logger {
     core;
@@ -29469,6 +29539,15 @@ let Logger = class Logger {
             this.core.info(message.slice(0, -2)); // Log the remaining tags
         }
     }
+    logRegCtlCouldNotBeDeleted(path) {
+        this.core.error(`regctl could not be deleted from ${path}`);
+    }
+    logRegCtlInstalled(installationPath, version) {
+        this.core.info(`regctl version ${version} was installed to ${installationPath}`);
+    }
+    logRegCtlNotInstalledYet() {
+        this.core.info('regctl is not installed yet but it will be installed now.');
+    }
 };
 Logger = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
@@ -29476,19 +29555,125 @@ Logger = __decorate([
     __metadata("design:paramtypes", [Core])
 ], Logger);
 
-var execExports = requireExec();
-
-let Exec = class Exec {
-    exec(commandLine, args, options) {
-        return execExports.exec(commandLine, args, options);
+class RegCtlBinary {
+    installationDirectory;
+    version;
+    platform;
+    arch;
+    repositoryBaseUrl = 'https://github.com/regclient/regclient';
+    constructor(installationDirectory, version, platform, arch) {
+        this.installationDirectory = installationDirectory;
+        this.version = version;
+        this.platform = platform;
+        this.arch = arch;
     }
-    getExecOutput(commandLine, args, options) {
-        return execExports.getExecOutput(commandLine, args, options);
+    buildDownloadUrl() {
+        let urlWithoutBinaryName = `${this.repositoryBaseUrl}/releases/download/${this.version}`;
+        if (this.version === 'latest') {
+            urlWithoutBinaryName = `${this.repositoryBaseUrl}/releases/latest/download`;
+        }
+        return `${urlWithoutBinaryName}/${this.getBinaryName() + this.getBinaryExtension()}`;
+    }
+    getBinaryName() {
+        switch (`${this.platform}-${this.arch}`) {
+            case 'linux-x64':
+                return 'regctl-linux-amd64';
+            case 'linux-arm64':
+                return 'regctl-linux-arm64';
+            case 'darwin-x64':
+                return 'regctl-darwin-amd64';
+            case 'darwin-arm64':
+                return 'regctl-darwin-arm64';
+            case 'win32-x64':
+                return 'regctl-windows-amd64';
+            default:
+                throw new Error(`Unsupported platform/arch: ${this.platform}/${this.arch}`);
+        }
+    }
+    getInstallationPath() {
+        return require$$1$5.join(this.installationDirectory, 'regctl' + this.getBinaryExtension());
+    }
+    getBinaryExtension() {
+        return this.platform === 'win32' ? '.exe' : '';
+    }
+}
+
+let RegCtlBinaryBuilder = class RegCtlBinaryBuilder {
+    home;
+    core;
+    constructor(home, core) {
+        this.home = home;
+        this.core = core;
+    }
+    build(version) {
+        const installDir = require$$1$5.join(this.home, '.regctl', 'bin');
+        return new RegCtlBinary(installDir, version, this.core.platform(), this.core.platformArch());
     }
 };
-Exec = __decorate([
-    scoped(Lifecycle$1.ContainerScoped)
-], Exec);
+RegCtlBinaryBuilder = __decorate([
+    injectable(),
+    __param(0, inject('ENV_HOME')),
+    __param(1, inject(Core)),
+    __metadata("design:paramtypes", [String, Core])
+], RegCtlBinaryBuilder);
+
+let Action$2 = class Action {
+    regCtlBinaryBuilder;
+    io;
+    downloader;
+    exec;
+    core;
+    logger;
+    constructor(regCtlBinaryBuilder, io, downloader, exec, core, logger) {
+        this.regCtlBinaryBuilder = regCtlBinaryBuilder;
+        this.io = io;
+        this.downloader = downloader;
+        this.exec = exec;
+        this.core = core;
+        this.logger = logger;
+    }
+    async run() {
+        const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
+        await this.io.mkdirP(regCtlBinary.installationDirectory);
+        try {
+            await this.exec.exec('rm', [regCtlBinary.getInstallationPath()]);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (error) {
+            this.logger.logRegCtlNotInstalledYet();
+        }
+        await this.downloader.downloadFile(regCtlBinary.buildDownloadUrl(), regCtlBinary.getInstallationPath());
+        await this.exec.exec('chmod', ['+x', regCtlBinary.getInstallationPath()]);
+        this.logger.logRegCtlInstalled(regCtlBinary.getInstallationPath(), regCtlBinary.version);
+        this.core.addPath(regCtlBinary.installationDirectory);
+        await this.exec.exec('regctl', ['version']);
+    }
+    async post() {
+        const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
+        try {
+            await this.exec.exec('rm', [regCtlBinary.getInstallationPath()]);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (error) {
+            this.logger.logRegCtlCouldNotBeDeleted(regCtlBinary.getInstallationPath());
+        }
+    }
+};
+Action$2 = __decorate([
+    injectable(),
+    __param(0, inject(RegCtlBinaryBuilder)),
+    __param(1, inject(Io)),
+    __param(2, inject(Downloader)),
+    __param(3, inject(Exec)),
+    __param(4, inject(Core)),
+    __param(5, inject(Logger)),
+    __metadata("design:paramtypes", [RegCtlBinaryBuilder,
+        Io,
+        Downloader,
+        Exec,
+        Core,
+        Logger])
+], Action$2);
 
 var yoctoQueue;
 var hasRequiredYoctoQueue;
@@ -31901,12 +32086,14 @@ TagSorter = __decorate([
 ], TagSorter);
 
 let Action = class Action {
+    installAction;
     loginAction;
     regClient;
     tagFilter;
     tagSorter;
     logger;
-    constructor(loginAction, regClient, tagFilter, tagSorter, logger) {
+    constructor(installAction, loginAction, regClient, tagFilter, tagSorter, logger) {
+        this.installAction = installAction;
         this.loginAction = loginAction;
         this.regClient = regClient;
         this.tagFilter = tagFilter;
@@ -31914,6 +32101,7 @@ let Action = class Action {
         this.logger = logger;
     }
     async run(inputs) {
+        await this.installAction.run();
         await this.loginAction.run(inputs);
         const sourceRepositoryTags = await this.regClient.listTagsInRepository(inputs.sourceRepository);
         this.logger.logTagsFound(sourceRepositoryTags.length, 'source');
@@ -31927,16 +32115,19 @@ let Action = class Action {
     }
     async post(inputs) {
         await this.loginAction.post(inputs);
+        await this.installAction.post();
     }
 };
 Action = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
-    __param(0, inject(Action$1)),
-    __param(1, inject(RegClient)),
-    __param(2, inject(TagFilter)),
-    __param(3, inject(TagSorter)),
-    __param(4, inject(Logger)),
-    __metadata("design:paramtypes", [Action$1,
+    __param(0, inject(Action$2)),
+    __param(1, inject(Action$1)),
+    __param(2, inject(RegClient)),
+    __param(3, inject(TagFilter)),
+    __param(4, inject(TagSorter)),
+    __param(5, inject(Logger)),
+    __metadata("design:paramtypes", [Action$2,
+        Action$1,
         RegClient,
         TagFilter,
         TagSorter,
@@ -31992,6 +32183,11 @@ function prepareContainer(core) {
         core.setFailed('regClientConcurrency must be a positive integer greater than 0');
     }
     instance.register('RegClientConcurrency', { useValue: regClientConcurrency });
+    const envHome = process.env.HOME;
+    if (!envHome) {
+        core.setFailed('HOME environment variable is not set');
+    }
+    instance.register('ENV_HOME', { useValue: envHome });
 }
 function parseLoginToInput(input) {
     return input === 'true' || input === '1';
