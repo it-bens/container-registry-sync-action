@@ -79,6 +79,12 @@ function prepareContainer(core: Core) {
     )
   }
   container.register('RegClientConcurrency', { useValue: regClientConcurrency })
+
+  const envHome = process.env.HOME
+  if (!envHome) {
+    core.setFailed('HOME environment variable is not set')
+  }
+  container.register('ENV_HOME', { useValue: envHome })
 }
 
 function parseLoginToInput(input: string): boolean {

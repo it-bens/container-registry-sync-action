@@ -24,20 +24,9 @@ The action can also be used to copy images within the same registry.
 
 ### Prerequisites
 
-The action relies on the availability of `regclient` (`regctl` as the CLI
-interface) on the runner. It has to be set up before the action is executed. A
-registry login might be required as well. It can be done before the action is
+The action uses `regclient` and will install it if it is not available in the
+runner. A registry login might be required. It can be done before the action is
 executed like below or by the action itself.
-
-```yaml
-jobs:
-  sync-images:
-    name: Sync images from DockerHub to GHCR
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Install regctl
-        uses: regclient/actions/regctl-installer@main
-```
 
 #### Authentication
 
@@ -52,7 +41,6 @@ jobs:
     name: Sync images from DockerHub to GHCR
     runs-on: ubuntu-24.04
     steps:
-      # ...
       - name: Login to DockerHub
         uses: regclient/actions/regctl-login@main
         with:
@@ -66,6 +54,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      # ...
 ```
 
 ##### regclient login

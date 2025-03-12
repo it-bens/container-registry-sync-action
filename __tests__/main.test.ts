@@ -8,6 +8,8 @@ import { buildMockedActionDependencies } from './helper.js'
 import { jest } from '@jest/globals'
 import MockedObject = jest.MockedObject
 
+const ENV_HOME = 'envHome'
+
 const mockedContainer = container as jest.Mocked<typeof container>
 mockedContainer.resolve = jest.fn() as jest.MockedFunction<
   typeof container.resolve
@@ -16,12 +18,14 @@ mockedContainer.resolve = jest.fn() as jest.MockedFunction<
 const {
   regClient: mockedRegClient,
   logger: mockedLogger,
+  installAction: mockedInstallAction,
   loginAction: mockedLoginAction,
   tagFilter: mockedTagFilter,
   tagSorter: mockedTagSorter,
   core: mockedCore
-} = buildMockedActionDependencies()
+} = buildMockedActionDependencies(ENV_HOME)
 const mockedAction = new Action(
+  mockedInstallAction,
   mockedLoginAction,
   mockedRegClient,
   mockedTagFilter,

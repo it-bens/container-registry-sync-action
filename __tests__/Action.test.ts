@@ -4,13 +4,16 @@ import { Action as LoginAction } from '../src/Login/Action.js'
 import { buildMockedActionDependencies } from './helper.js'
 import { jest } from '@jest/globals'
 
+const ENV_HOME = 'envHome'
+
 const {
   regClient: mockedRegClient,
   logger: mockedLogger,
+  installAction: mockedInstallAction,
   loginAction: mockedLoginAction,
   tagFilter: mockedTagFilter,
   tagSorter: mockedTagSorter
-} = buildMockedActionDependencies()
+} = buildMockedActionDependencies(ENV_HOME)
 
 describe('Action', () => {
   let action: Action
@@ -20,6 +23,7 @@ describe('Action', () => {
     jest.clearAllMocks()
 
     action = new Action(
+      mockedInstallAction,
       mockedLoginAction,
       mockedRegClient,
       mockedTagFilter,
@@ -50,6 +54,7 @@ describe('Action', () => {
 
     await action.run(inputs)
 
+    expect(mockedInstallAction.run).toHaveBeenCalled()
     expect(mockedLoginAction.run).toHaveBeenCalledWith(inputs)
     expect(mockedRegClient.listTagsInRepository).toHaveBeenCalledWith(
       'source-repo'
@@ -84,6 +89,8 @@ describe('Action', () => {
     >
 
     await action.post(inputs)
+
     expect(mockedLoginAction.post).toHaveBeenCalledWith(inputs)
+    expect(mockedInstallAction.post).toHaveBeenCalledWith()
   })
 })
