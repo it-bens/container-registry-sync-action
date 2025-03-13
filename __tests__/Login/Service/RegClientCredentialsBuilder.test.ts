@@ -1,5 +1,5 @@
 import { Inputs } from '../../../src/Inputs.js'
-import { RegClientCredentials } from '../../../src/Utils/RegClientCredentials.js'
+import { RegClientCredentials } from '../../../src/Utils/RegClient/RegClientCredentials.js'
 import { RegClientCredentialsBuilder } from '../../../src/Login/Service/RegClientCredentialsBuilder.js'
 
 describe('RegClientCredentialsBuilder', () => {

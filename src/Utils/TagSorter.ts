@@ -1,7 +1,8 @@
 import { Lifecycle, scoped } from 'tsyringe'
+import { TagSorterInterface } from './TagSorterInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
-export class TagSorter {
+export class TagSorter implements TagSorterInterface {
   public sortTags(tags: string[]): string[] {
     // Group tags by their full version
     const groups = tags.reduce(

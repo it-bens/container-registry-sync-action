@@ -1,15 +1,16 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
-import { Exec } from './GitHubAction/Exec.js'
-import { RegClientConcurrencyLimiter } from './RegClientConcurrencyLimiter.js'
-import { RegClientCredentials } from './RegClientCredentials.js'
+import { ExecInterface } from './GitHubAction/ExecInterface.js'
+import { RegClientConcurrencyLimiterInterface } from './RegClient/RegClientConcurrencyLimiterInterface.js'
+import { RegClientCredentials } from './RegClient/RegClientCredentials.js'
+import { RegClientInterface } from './RegClientInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
-export class RegClient {
+export class RegClient implements RegClientInterface {
   constructor(
-    @inject(Exec)
-    private readonly exec: Exec,
-    @inject(RegClientConcurrencyLimiter)
-    private readonly concurrencyLimiter: RegClientConcurrencyLimiter
+    @inject('ExecInterface')
+    private readonly exec: ExecInterface,
+    @inject('RegClientConcurrencyLimiterInterface')
+    private readonly concurrencyLimiter: RegClientConcurrencyLimiterInterface
   ) {}
 
   public async listTagsInRepository(repository: string): Promise<string[]> {

@@ -1,7 +1,8 @@
-import { Core } from './GitHubAction/Core.js';
-export declare class Logger {
+import { CoreInterface } from './GitHubAction/CoreInterface.js';
+import { LoggerInterface } from './LoggerInterface.js';
+export declare class Logger implements LoggerInterface {
     private readonly core;
-    constructor(core: Core);
+    constructor(core: CoreInterface);
     logLoggingOutFromRepository(repository: string): void;
     logSkipLoginToRepository(repository: string): void;
     logTagsFound(tagCount: number, repository: string): void;

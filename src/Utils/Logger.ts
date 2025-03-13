@@ -1,11 +1,12 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
-import { Core } from './GitHubAction/Core.js'
+import { CoreInterface } from './GitHubAction/CoreInterface.js'
+import { LoggerInterface } from './LoggerInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
-export class Logger {
+export class Logger implements LoggerInterface {
   constructor(
-    @inject(Core)
-    private readonly core: Core
+    @inject('CoreInterface')
+    private readonly core: CoreInterface
   ) {}
 
   public logLoggingOutFromRepository(repository: string): void {

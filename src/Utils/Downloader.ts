@@ -1,9 +1,10 @@
+import { Lifecycle, scoped } from 'tsyringe'
 import { basename, dirname } from 'path'
 import { DownloaderHelper } from 'node-downloader-helper'
-import { injectable } from 'tsyringe'
+import { DownloaderInterface } from './DownloaderInterface.js'
 
-@injectable()
-export class Downloader {
+@scoped(Lifecycle.ContainerScoped)
+export class Downloader implements DownloaderInterface {
   public async downloadFile(
     fileUrl: string,
     destination: string

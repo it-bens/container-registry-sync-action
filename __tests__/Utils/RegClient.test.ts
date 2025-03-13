@@ -1,6 +1,6 @@
 import { Exec } from '../../src/Utils/GitHubAction/Exec.js'
 import { RegClient } from '../../src/Utils/RegClient.js'
-import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClientConcurrencyLimiter.js'
+import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClient/RegClientConcurrencyLimiter.js'
 import { jest } from '@jest/globals'
 
 jest.mock('../../src/Utils/GitHubAction/Exec.js')

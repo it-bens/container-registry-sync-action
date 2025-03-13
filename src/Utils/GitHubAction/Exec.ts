@@ -1,8 +1,9 @@
 import * as exec from '@actions/exec'
 import { Lifecycle, scoped } from 'tsyringe'
+import { ExecInterface } from './ExecInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
-export class Exec {
+export class Exec implements ExecInterface {
   public exec(
     commandLine: string,
     args?: string[],

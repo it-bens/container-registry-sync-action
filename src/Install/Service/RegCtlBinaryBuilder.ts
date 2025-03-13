@@ -1,15 +1,16 @@
-import { inject, injectable } from 'tsyringe'
-import { Core } from '../../Utils/GitHubAction/Core.js'
+import { Lifecycle, inject, scoped } from 'tsyringe'
+import { CoreInterface } from '../../Utils/GitHubAction/CoreInterface.js'
 import { RegCtlBinary } from '../RegCtlBinary.js'
+import { RegCtlBinaryBuilderInterface } from './RegCtlBinaryBuilderInterface.js'
 import path from 'path'
 
-@injectable()
-export class RegCtlBinaryBuilder {
+@scoped(Lifecycle.ContainerScoped)
+export class RegCtlBinaryBuilder implements RegCtlBinaryBuilderInterface {
   constructor(
     @inject('ENV_HOME')
     private readonly home: string,
-    @inject(Core)
-    private readonly core: Core
+    @inject('CoreInterface')
+    private readonly core: CoreInterface
   ) {}
 
   public build(version: string): RegCtlBinary {

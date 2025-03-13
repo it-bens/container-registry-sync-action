@@ -1,8 +1,11 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
+import { RegClientConcurrencyLimiterInterface } from './RegClientConcurrencyLimiterInterface.js'
 import pLimit from 'p-limit'
 
 @scoped(Lifecycle.ContainerScoped)
-export class RegClientConcurrencyLimiter {
+export class RegClientConcurrencyLimiter
+  implements RegClientConcurrencyLimiterInterface
+{
   private readonly limit: ReturnType<typeof pLimit>
 
   constructor(

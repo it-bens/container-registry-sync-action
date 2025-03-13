@@ -1,26 +1,26 @@
-import { inject, injectable } from 'tsyringe'
-import { Core } from '../Utils/GitHubAction/Core.js'
-import { Downloader } from '../Utils/Downloader.js'
-import { Exec } from '../Utils/GitHubAction/Exec.js'
-import { Io } from '../Utils/GitHubAction/Io.js'
-import { Logger } from '../Utils/Logger.js'
-import { RegCtlBinaryBuilder } from './Service/RegCtlBinaryBuilder.js'
+import { Lifecycle, inject, scoped } from 'tsyringe'
+import { CoreInterface } from '../Utils/GitHubAction/CoreInterface.js'
+import { DownloaderInterface } from '../Utils/DownloaderInterface.js'
+import { ExecInterface } from '../Utils/GitHubAction/ExecInterface.js'
+import { IoInterface } from '../Utils/GitHubAction/IoInterface.js'
+import { LoggerInterface } from '../Utils/LoggerInterface.js'
+import { RegCtlBinaryBuilderInterface } from './Service/RegCtlBinaryBuilderInterface.js'
 
-@injectable()
+@scoped(Lifecycle.ContainerScoped)
 export class Action {
   constructor(
-    @inject(RegCtlBinaryBuilder)
-    private readonly regCtlBinaryBuilder: RegCtlBinaryBuilder,
-    @inject(Io)
-    private readonly io: Io,
-    @inject(Downloader)
-    private readonly downloader: Downloader,
-    @inject(Exec)
-    private readonly exec: Exec,
-    @inject(Core)
-    private readonly core: Core,
-    @inject(Logger)
-    private readonly logger: Logger
+    @inject('RegCtlBinaryBuilderInterface')
+    private readonly regCtlBinaryBuilder: RegCtlBinaryBuilderInterface,
+    @inject('IoInterface')
+    private readonly io: IoInterface,
+    @inject('DownloaderInterface')
+    private readonly downloader: DownloaderInterface,
+    @inject('ExecInterface')
+    private readonly exec: ExecInterface,
+    @inject('CoreInterface')
+    private readonly core: CoreInterface,
+    @inject('LoggerInterface')
+    private readonly logger: LoggerInterface
   ) {}
 
   async run(): Promise<void> {
