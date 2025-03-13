@@ -7,6 +7,7 @@ import { Exec } from './Utils/GitHubAction/Exec.js'
 import { Inputs } from './Inputs.js'
 import { Io } from './Utils/GitHubAction/Io.js'
 import { Logger } from './Utils/Logger.js'
+import { RegClient } from './Utils/RegClient.js'
 import { RegClientConcurrencyLimiter } from './Utils/RegClient/RegClientConcurrencyLimiter.js'
 import { RegClientCredentialsBuilder } from './Login/Service/RegClientCredentialsBuilder.js'
 import { RegCtlBinaryBuilder } from './Install/Service/RegCtlBinaryBuilder.js'
@@ -96,11 +97,12 @@ function prepareContainer(core: CoreInterface) {
   }
   container.register('ENV_HOME', { useValue: envHome })
 
-  container.register('CoreInterface', { useValue: Core })
+  container.register('CoreInterface', { useClass: Core })
   container.register('DownloaderInterface', { useClass: Downloader })
   container.register('ExecInterface', { useClass: Exec })
   container.register('IoInterface', { useClass: Io })
   container.register('LoggerInterface', { useClass: Logger })
+  container.register('RegClientInterface', { useClass: RegClient })
   container.register('RegClientConcurrencyLimiterInterface', {
     useClass: RegClientConcurrencyLimiter
   })

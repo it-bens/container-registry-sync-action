@@ -29710,6 +29710,50 @@ Logger = __decorate([
     __metadata("design:paramtypes", [Object])
 ], Logger);
 
+let RegClient = class RegClient {
+    exec;
+    concurrencyLimiter;
+    constructor(exec, concurrencyLimiter) {
+        this.exec = exec;
+        this.concurrencyLimiter = concurrencyLimiter;
+    }
+    async listTagsInRepository(repository) {
+        const output = await this.exec.getExecOutput('regctl', ['tag', 'ls', repository], { silent: true });
+        return output.stdout.trim().split('\n');
+    }
+    async logIntoRegistry(credentials) {
+        const args = ['registry', 'login'];
+        if (credentials.registry !== null) {
+            args.push(credentials.registry);
+        }
+        args.push('-u', credentials.username, '--pass-stdin');
+        await this.exec.exec('regctl', args, {
+            input: Buffer.from(credentials.password)
+        });
+    }
+    async logoutFromRegistry(credentials) {
+        const args = ['registry', 'logout'];
+        if (credentials.registry !== null) {
+            args.push(credentials.registry);
+        }
+        await this.exec.exec('regctl', args);
+    }
+    async copyImageFromSourceToTarget(sourceRepository, sourceTag, targetRepository, targetTag) {
+        await this.concurrencyLimiter.execute(() => this.exec.exec('regctl', [
+            'image',
+            'copy',
+            `${sourceRepository}:${sourceTag}`,
+            `${targetRepository}:${targetTag}`
+        ]));
+    }
+};
+RegClient = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject('ExecInterface')),
+    __param(1, inject('RegClientConcurrencyLimiterInterface')),
+    __metadata("design:paramtypes", [Object, Object])
+], RegClient);
+
 var yoctoQueue;
 var hasRequiredYoctoQueue;
 
@@ -32134,11 +32178,12 @@ function prepareContainer(core) {
         core.setFailed('HOME environment variable is not set');
     }
     instance.register('ENV_HOME', { useValue: envHome });
-    instance.register('CoreInterface', { useValue: Core });
+    instance.register('CoreInterface', { useClass: Core });
     instance.register('DownloaderInterface', { useClass: Downloader });
     instance.register('ExecInterface', { useClass: Exec });
     instance.register('IoInterface', { useClass: Io });
     instance.register('LoggerInterface', { useClass: Logger });
+    instance.register('RegClientInterface', { useClass: RegClient });
     instance.register('RegClientConcurrencyLimiterInterface', {
         useClass: RegClientConcurrencyLimiter
     });
