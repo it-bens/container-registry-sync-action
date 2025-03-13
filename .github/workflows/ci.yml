@@ -88,5 +88,5 @@ jobs:
           organization: 'it-bens'
           container: 'container-registry-sync-action'
           dry-run: false
-          keep-tags-regexes: 'latest'
+          keep-tags-regexes: 'linux'
           prune-untagged: true
