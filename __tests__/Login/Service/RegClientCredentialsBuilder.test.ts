@@ -70,4 +70,35 @@ describe('RegClientCredentialsBuilder', () => {
     expect(credentials.source).toEqual(expectedSourceCredentials)
     expect(credentials.target).toEqual(expectedTargetCredentials)
   })
+
+  it('should build credentials for source and target repositories without namespace', () => {
+    const inputs: Inputs = {
+      sourceRepository: 'repo',
+      loginToSourceRepository: true,
+      sourceRepositoryUsername: 'sourceUser',
+      sourceRepositoryPassword: 'sourcePass',
+      targetRepository: 'repo2',
+      loginToTargetRepository: true,
+      targetRepositoryUsername: 'targetUser',
+      targetRepositoryPassword: 'targetPass',
+      tags: 'latest'
+    }
+
+    const expectedSourceCredentials: RegClientCredentials = {
+      registry: null,
+      username: 'sourceUser',
+      password: 'sourcePass'
+    }
+
+    const expectedTargetCredentials: RegClientCredentials = {
+      registry: null,
+      username: 'targetUser',
+      password: 'targetPass'
+    }
+
+    const credentials = builder.build(inputs)
+
+    expect(credentials.source).toEqual(expectedSourceCredentials)
+    expect(credentials.target).toEqual(expectedTargetCredentials)
+  })
 })

@@ -12,13 +12,13 @@ export class RegClientCredentialsBuilder
     target: RegClientCredentials
   } {
     const sourceRegistry =
-      inputs.sourceRepository.split('/').length === 2
-        ? null
-        : inputs.sourceRepository.split('/')[0]
+      inputs.sourceRepository.split('/').length > 2
+        ? inputs.sourceRepository.split('/')[0]
+        : null
     const targetRegistry =
-      inputs.targetRepository.split('/').length === 2
-        ? null
-        : inputs.targetRepository.split('/')[0]
+      inputs.targetRepository.split('/').length > 2
+        ? inputs.targetRepository.split('/')[0]
+        : null
 
     return {
       source: {
