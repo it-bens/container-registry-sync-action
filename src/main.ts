@@ -15,7 +15,7 @@ import { TagSorter } from './Utils/TagSorter.js'
 import { container } from 'tsyringe'
 
 export async function run() {
-  const core = container.resolve('CoreInterface') as CoreInterface
+  const core = container.resolve(Core) as CoreInterface
   prepareContainer(core)
   const inputs = buildInputs(core)
 
@@ -32,7 +32,7 @@ export async function run() {
 }
 
 export async function post() {
-  const core = container.resolve('CoreInterface') as CoreInterface
+  const core = container.resolve(Core) as CoreInterface
   prepareContainer(core)
   const inputs = buildInputs(core)
 
@@ -42,7 +42,7 @@ export async function post() {
     await action.post(inputs)
   } catch (error: unknown) {
     if (error instanceof Error) {
-      const core = container.resolve('CoreInterface') as CoreInterface
+      const core = container.resolve(Core) as CoreInterface
       core.setFailed(error.message)
     }
   }

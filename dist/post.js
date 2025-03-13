@@ -32081,7 +32081,7 @@ TagSorter = __decorate([
 ], TagSorter);
 
 async function post() {
-    const core = instance.resolve('CoreInterface');
+    const core = instance.resolve(Core);
     prepareContainer(core);
     const inputs = buildInputs(core);
     const action = instance.resolve(Action);
@@ -32090,7 +32090,7 @@ async function post() {
     }
     catch (error) {
         if (error instanceof Error) {
-            const core = instance.resolve('CoreInterface');
+            const core = instance.resolve(Core);
             core.setFailed(error.message);
         }
     }

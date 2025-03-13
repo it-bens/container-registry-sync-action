@@ -32081,7 +32081,7 @@ TagSorter = __decorate([
 ], TagSorter);
 
 async function run() {
-    const core = instance.resolve('CoreInterface');
+    const core = instance.resolve(Core);
     prepareContainer(core);
     const inputs = buildInputs(core);
     const action = instance.resolve(Action);

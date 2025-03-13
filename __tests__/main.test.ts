@@ -3,6 +3,7 @@ import { InjectionToken, container } from 'tsyringe'
 import { It, Mock, Times } from 'moq.ts'
 import { post, run } from '../src/main.js'
 import { Action } from '../src/Action.js'
+import { Core } from '../src/Utils/GitHubAction/Core.js'
 import { CoreInterface } from '../src/Utils/GitHubAction/CoreInterface.js'
 import { Inputs } from '../src/Inputs.js'
 import _ from 'lodash'
@@ -67,7 +68,7 @@ describe('main', () => {
           return mockedAction.object() as T
         }
 
-        if (token === 'CoreInterface') {
+        if (token === 'CoreInterface' || token === Core) {
           return mockedCore.object() as T
         }
 
