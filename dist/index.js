@@ -29616,6 +29616,10 @@ Object.defineProperty(exports,'__esModule',{value:true}),exports.DownloaderHelpe
 var distExports = requireDist();
 
 let Downloader = class Downloader {
+    logger;
+    constructor(logger) {
+        this.logger = logger;
+    }
     async downloadFile(fileUrl, destination) {
         const directory = dirname(destination);
         const filename = basename$1(destination);
@@ -29624,7 +29628,10 @@ let Downloader = class Downloader {
             override: true
         });
         return new Promise((resolve, reject) => {
-            downloadHelper.on('end', () => resolve());
+            downloadHelper.on('end', () => {
+                this.logger.logRegCtlDownloaded(fileUrl, directory);
+                resolve();
+            });
             downloadHelper.on('error', (err) => {
                 reject(new Error(`The download of ${filename} from ${fileUrl} failed: ${err.message} (status: ${err.status})`));
             });
@@ -29633,7 +29640,9 @@ let Downloader = class Downloader {
     }
 };
 Downloader = __decorate([
-    scoped(Lifecycle$1.ContainerScoped)
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject('LoggerInterface')),
+    __metadata("design:paramtypes", [Object])
 ], Downloader);
 
 var execExports = requireExec();
@@ -29696,6 +29705,9 @@ let Logger = class Logger {
     }
     logRegCtlCouldNotBeDeleted(path) {
         this.core.error(`regctl could not be deleted from ${path}`);
+    }
+    logRegCtlDownloaded(fileUrl, directory) {
+        this.core.info(`regctl was downloaded from ${fileUrl} to ${directory}`);
     }
     logRegCtlInstalled(installationPath, version) {
         this.core.info(`regctl version ${version} was installed to ${installationPath}`);

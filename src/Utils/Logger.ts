@@ -55,6 +55,10 @@ export class Logger implements LoggerInterface {
     this.core.error(`regctl could not be deleted from ${path}`)
   }
 
+  public logRegCtlDownloaded(fileUrl: string, directory: string): void {
+    this.core.info(`regctl was downloaded from ${fileUrl} to ${directory}`)
+  }
+
   public logRegCtlInstalled(installationPath: string, version: string): void {
     this.core.info(
       `regctl version ${version} was installed to ${installationPath}`

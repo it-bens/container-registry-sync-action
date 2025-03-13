@@ -25,6 +25,9 @@ export function setupMockedLoggerInterface(): Mock<LoggerInterface> {
     .setup((logger) => logger.logRegCtlCouldNotBeDeleted(It.IsAny()))
     .returns(undefined)
   mockedLogger
+    .setup((logger) => logger.logRegCtlDownloaded(It.IsAny(), It.IsAny()))
+    .returns(undefined)
+  mockedLogger
     .setup((logger) => logger.logRegCtlInstalled(It.IsAny(), It.IsAny()))
     .returns(undefined)
   mockedLogger

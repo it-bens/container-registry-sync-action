@@ -1,10 +1,16 @@
-import { Lifecycle, scoped } from 'tsyringe'
+import { Lifecycle, inject, scoped } from 'tsyringe'
 import { basename, dirname } from 'path'
 import { DownloaderHelper } from 'node-downloader-helper'
 import { DownloaderInterface } from './DownloaderInterface.js'
+import { LoggerInterface } from './LoggerInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
 export class Downloader implements DownloaderInterface {
+  constructor(
+    @inject('LoggerInterface')
+    private readonly logger: LoggerInterface
+  ) {}
+
   public async downloadFile(
     fileUrl: string,
     destination: string
@@ -18,7 +24,10 @@ export class Downloader implements DownloaderInterface {
     })
 
     return new Promise((resolve, reject) => {
-      downloadHelper.on('end', () => resolve())
+      downloadHelper.on('end', () => {
+        this.logger.logRegCtlDownloaded(fileUrl, directory)
+        resolve()
+      })
       downloadHelper.on('error', (err) => {
         reject(
           new Error(

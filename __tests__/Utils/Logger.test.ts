@@ -88,4 +88,50 @@ describe('Logger', () => {
       mockedCore.verify((core) => core.info(msg))
     })
   })
+
+  // eslint-disable-next-line jest/expect-expect
+  it('should log regctl could not be deleted', () => {
+    const path = '/path/to/regctl'
+
+    logger.logRegCtlCouldNotBeDeleted(path)
+
+    mockedCore.verify((core) =>
+      core.error('regctl could not be deleted from /path/to/regctl')
+    )
+  })
+
+  // eslint-disable-next-line jest/expect-expect
+  it('should log regctl downloaded', () => {
+    const fileUrl = 'https://example.com/regctl'
+    const directory = '/path/to/download'
+
+    logger.logRegCtlDownloaded(fileUrl, directory)
+
+    mockedCore.verify((core) =>
+      core.info(
+        'regctl was downloaded from https://example.com/regctl to /path/to/download'
+      )
+    )
+  })
+
+  // eslint-disable-next-line jest/expect-expect
+  it('should log regctl installed', () => {
+    const installationPath = '/path/to/install'
+    const version = 'v1.0.0'
+
+    logger.logRegCtlInstalled(installationPath, version)
+
+    mockedCore.verify((core) =>
+      core.info('regctl version v1.0.0 was installed to /path/to/install')
+    )
+  })
+
+  // eslint-disable-next-line jest/expect-expect
+  it('should log regctl not installed yet', () => {
+    logger.logRegCtlNotInstalledYet()
+
+    mockedCore.verify((core) =>
+      core.info('regctl is not installed yet but it will be installed now.')
+    )
+  })
 })
