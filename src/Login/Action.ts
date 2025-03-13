@@ -1,21 +1,21 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
-import { Core } from '../Utils/GitHubAction/Core.js'
+import { CoreInterface } from '../Utils/GitHubAction/CoreInterface.js'
 import { Inputs } from '../Inputs.js'
-import { Logger } from '../Utils/Logger.js'
-import { RegClient } from '../Utils/RegClient.js'
-import { RegClientCredentialsBuilder } from './Service/RegClientCredentialsBuilder.js'
+import { LoggerInterface } from '../Utils/LoggerInterface.js'
+import { RegClientCredentialsBuilderInterface } from './Service/RegClientCredentialsBuilderInterface.js'
+import { RegClientInterface } from '../Utils/RegClientInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
 export class Action {
   constructor(
-    @inject(RegClientCredentialsBuilder)
-    private readonly credentialsBuilder: RegClientCredentialsBuilder,
-    @inject(RegClient)
-    private readonly regClient: RegClient,
-    @inject(Logger)
-    private readonly logger: Logger,
-    @inject(Core)
-    private readonly core: Core
+    @inject('RegClientCredentialsBuilderInterface')
+    private readonly credentialsBuilder: RegClientCredentialsBuilderInterface,
+    @inject('RegClientInterface')
+    private readonly regClient: RegClientInterface,
+    @inject('LoggerInterface')
+    private readonly logger: LoggerInterface,
+    @inject('CoreInterface')
+    private readonly core: CoreInterface
   ) {}
 
   async run(inputs: Inputs): Promise<void> {

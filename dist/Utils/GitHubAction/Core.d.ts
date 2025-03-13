@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
-export declare class Core {
+import { CoreInterface } from './CoreInterface.js';
+export declare class Core implements CoreInterface {
     addPath(inputPath: string): void;
     error(message: string): void;
     getInput(name: string, options?: core.InputOptions): string;

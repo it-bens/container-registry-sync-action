@@ -1,8 +1,9 @@
-import { Core } from '../../Utils/GitHubAction/Core.js';
+import { CoreInterface } from '../../Utils/GitHubAction/CoreInterface.js';
 import { RegCtlBinary } from '../RegCtlBinary.js';
-export declare class RegCtlBinaryBuilder {
+import { RegCtlBinaryBuilderInterface } from './RegCtlBinaryBuilderInterface.js';
+export declare class RegCtlBinaryBuilder implements RegCtlBinaryBuilderInterface {
     private readonly home;
     private readonly core;
-    constructor(home: string, core: Core);
+    constructor(home: string, core: CoreInterface);
     build(version: string): RegCtlBinary;
 }

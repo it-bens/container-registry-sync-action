@@ -4,7 +4,7 @@ import { Exec } from '../../src/Utils/GitHubAction/Exec.js'
 import { Inputs } from '../../src/Inputs.js'
 import { Logger } from '../../src/Utils/Logger.js'
 import { RegClient } from '../../src/Utils/RegClient.js'
-import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClientConcurrencyLimiter.js'
+import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClient/RegClientConcurrencyLimiter.js'
 import { RegClientCredentialsBuilder } from '../../src/Login/Service/RegClientCredentialsBuilder.js'
 import { jest } from '@jest/globals'
 

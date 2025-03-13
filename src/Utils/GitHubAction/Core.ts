@@ -1,8 +1,9 @@
 import * as core from '@actions/core'
 import { Lifecycle, scoped } from 'tsyringe'
+import { CoreInterface } from './CoreInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
-export class Core {
+export class Core implements CoreInterface {
   public addPath(inputPath: string): void {
     core.addPath(inputPath)
   }

@@ -67,7 +67,7 @@ describe('main', () => {
           return mockedAction as T
         }
 
-        if (token === Core) {
+        if (token === 'CoreInterface') {
           return mockedCore as T
         }
 

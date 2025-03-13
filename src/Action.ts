@@ -1,11 +1,11 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
 import { Inputs } from './Inputs.js'
 import { Action as InstallAction } from './Install/Action.js'
-import { Logger } from './Utils/Logger.js'
+import { LoggerInterface } from './Utils/LoggerInterface.js'
 import { Action as LoginAction } from './Login/Action.js'
-import { RegClient } from './Utils/RegClient.js'
-import { TagFilter } from './Utils/TagFilter.js'
-import { TagSorter } from './Utils/TagSorter.js'
+import { RegClientInterface } from './Utils/RegClientInterface.js'
+import { TagFilterInterface } from './Utils/TagFilterInterface.js'
+import { TagSorterInterface } from './Utils/TagSorterInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
 export class Action {
@@ -14,14 +14,14 @@ export class Action {
     private readonly installAction: InstallAction,
     @inject(LoginAction)
     private readonly loginAction: LoginAction,
-    @inject(RegClient)
-    private readonly regClient: RegClient,
-    @inject(TagFilter)
-    private readonly tagFilter: TagFilter,
-    @inject(TagSorter)
-    private readonly tagSorter: TagSorter,
-    @inject(Logger)
-    private readonly logger: Logger
+    @inject('RegClientInterface')
+    private readonly regClient: RegClientInterface,
+    @inject('TagFilterInterface')
+    private readonly tagFilter: TagFilterInterface,
+    @inject('TagSorterInterface')
+    private readonly tagSorter: TagSorterInterface,
+    @inject('LoggerInterface')
+    private readonly logger: LoggerInterface
   ) {}
 
   async run(inputs: Inputs) {

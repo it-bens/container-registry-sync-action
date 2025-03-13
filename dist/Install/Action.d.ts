@@ -1,9 +1,9 @@
-import { Core } from '../Utils/GitHubAction/Core.js';
-import { Downloader } from '../Utils/Downloader.js';
-import { Exec } from '../Utils/GitHubAction/Exec.js';
-import { Io } from '../Utils/GitHubAction/Io.js';
-import { Logger } from '../Utils/Logger.js';
-import { RegCtlBinaryBuilder } from './Service/RegCtlBinaryBuilder.js';
+import { CoreInterface } from '../Utils/GitHubAction/CoreInterface.js';
+import { DownloaderInterface } from '../Utils/DownloaderInterface.js';
+import { ExecInterface } from '../Utils/GitHubAction/ExecInterface.js';
+import { IoInterface } from '../Utils/GitHubAction/IoInterface.js';
+import { LoggerInterface } from '../Utils/LoggerInterface.js';
+import { RegCtlBinaryBuilderInterface } from './Service/RegCtlBinaryBuilderInterface.js';
 export declare class Action {
     private readonly regCtlBinaryBuilder;
     private readonly io;
@@ -11,7 +11,7 @@ export declare class Action {
     private readonly exec;
     private readonly core;
     private readonly logger;
-    constructor(regCtlBinaryBuilder: RegCtlBinaryBuilder, io: Io, downloader: Downloader, exec: Exec, core: Core, logger: Logger);
+    constructor(regCtlBinaryBuilder: RegCtlBinaryBuilderInterface, io: IoInterface, downloader: DownloaderInterface, exec: ExecInterface, core: CoreInterface, logger: LoggerInterface);
     run(): Promise<void>;
     post(): Promise<void>;
 }

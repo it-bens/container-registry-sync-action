@@ -1,4 +1,4 @@
-import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClientConcurrencyLimiter.js'
+import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClient/RegClientConcurrencyLimiter.js'
 
 describe('RegClientConcurrencyLimiter', () => {
   it('should limit the number of concurrent executions', async () => {

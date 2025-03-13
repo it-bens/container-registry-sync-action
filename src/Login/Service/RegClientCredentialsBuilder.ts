@@ -1,10 +1,13 @@
 import { Lifecycle, scoped } from 'tsyringe'
 import { Inputs } from '../../Inputs.js'
-import { RegClientCredentials } from '../../Utils/RegClientCredentials.js'
+import { RegClientCredentials } from '../../Utils/RegClient/RegClientCredentials.js'
+import { RegClientCredentialsBuilderInterface } from './RegClientCredentialsBuilderInterface.js'
 
 @scoped(Lifecycle.ContainerScoped)
-export class RegClientCredentialsBuilder {
-  build(inputs: Inputs): {
+export class RegClientCredentialsBuilder
+  implements RegClientCredentialsBuilderInterface
+{
+  public build(inputs: Inputs): {
     source: RegClientCredentials
     target: RegClientCredentials
   } {

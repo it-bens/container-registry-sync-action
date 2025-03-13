@@ -2205,6 +2205,158 @@ if (typeof Reflect === "undefined" || !Reflect.getMetadata) {
     throw new Error("tsyringe requires a reflect polyfill. Please add 'import \"reflect-metadata\"' to the top of your entry point.");
 }
 
+let Action$2 = class Action {
+    regCtlBinaryBuilder;
+    io;
+    downloader;
+    exec;
+    core;
+    logger;
+    constructor(regCtlBinaryBuilder, io, downloader, exec, core, logger) {
+        this.regCtlBinaryBuilder = regCtlBinaryBuilder;
+        this.io = io;
+        this.downloader = downloader;
+        this.exec = exec;
+        this.core = core;
+        this.logger = logger;
+    }
+    async run() {
+        const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
+        await this.io.mkdirP(regCtlBinary.installationDirectory);
+        try {
+            await this.exec.exec('rm', [regCtlBinary.getInstallationPath()]);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (error) {
+            this.logger.logRegCtlNotInstalledYet();
+        }
+        await this.downloader.downloadFile(regCtlBinary.buildDownloadUrl(), regCtlBinary.getInstallationPath());
+        await this.exec.exec('chmod', ['+x', regCtlBinary.getInstallationPath()]);
+        this.logger.logRegCtlInstalled(regCtlBinary.getInstallationPath(), regCtlBinary.version);
+        this.core.addPath(regCtlBinary.installationDirectory);
+        await this.exec.exec('regctl', ['version']);
+    }
+    async post() {
+        const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
+        try {
+            await this.exec.exec('rm', [regCtlBinary.getInstallationPath()]);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        }
+        catch (error) {
+            this.logger.logRegCtlCouldNotBeDeleted(regCtlBinary.getInstallationPath());
+        }
+    }
+};
+Action$2 = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject('RegCtlBinaryBuilderInterface')),
+    __param(1, inject('IoInterface')),
+    __param(2, inject('DownloaderInterface')),
+    __param(3, inject('ExecInterface')),
+    __param(4, inject('CoreInterface')),
+    __param(5, inject('LoggerInterface')),
+    __metadata("design:paramtypes", [Object, Object, Object, Object, Object, Object])
+], Action$2);
+
+let Action$1 = class Action {
+    credentialsBuilder;
+    regClient;
+    logger;
+    core;
+    constructor(credentialsBuilder, regClient, logger, core) {
+        this.credentialsBuilder = credentialsBuilder;
+        this.regClient = regClient;
+        this.logger = logger;
+        this.core = core;
+    }
+    async run(inputs) {
+        const regClientCredentials = this.credentialsBuilder.build(inputs);
+        if (!inputs.loginToSourceRepository) {
+            this.logger.logSkipLoginToRepository('source');
+        }
+        else if (regClientCredentials.source.username === '' ||
+            regClientCredentials.source.password === '') {
+            this.core.setFailed('Source repository credentials (username and/or password) are missing.');
+        }
+        else {
+            await this.regClient.logIntoRegistry(regClientCredentials.source);
+        }
+        if (!inputs.loginToTargetRepository) {
+            this.logger.logSkipLoginToRepository('target');
+        }
+        else if (regClientCredentials.target.username === '' ||
+            regClientCredentials.target.password === '') {
+            this.core.setFailed('Target repository credentials (username and/or password) are missing.');
+        }
+        else {
+            await this.regClient.logIntoRegistry(regClientCredentials.target);
+        }
+    }
+    async post(inputs) {
+        if (inputs.loginToSourceRepository) {
+            this.logger.logLoggingOutFromRepository('source');
+            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).source);
+        }
+        if (inputs.loginToTargetRepository) {
+            this.logger.logLoggingOutFromRepository('target');
+            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).target);
+        }
+    }
+};
+Action$1 = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject('RegClientCredentialsBuilderInterface')),
+    __param(1, inject('RegClientInterface')),
+    __param(2, inject('LoggerInterface')),
+    __param(3, inject('CoreInterface')),
+    __metadata("design:paramtypes", [Object, Object, Object, Object])
+], Action$1);
+
+let Action = class Action {
+    installAction;
+    loginAction;
+    regClient;
+    tagFilter;
+    tagSorter;
+    logger;
+    constructor(installAction, loginAction, regClient, tagFilter, tagSorter, logger) {
+        this.installAction = installAction;
+        this.loginAction = loginAction;
+        this.regClient = regClient;
+        this.tagFilter = tagFilter;
+        this.tagSorter = tagSorter;
+        this.logger = logger;
+    }
+    async run(inputs) {
+        await this.installAction.run();
+        await this.loginAction.run(inputs);
+        const sourceRepositoryTags = await this.regClient.listTagsInRepository(inputs.sourceRepository);
+        this.logger.logTagsFound(sourceRepositoryTags.length, 'source');
+        let filteredSourceRepositoryTags = this.tagFilter.filter(sourceRepositoryTags, inputs.tags);
+        filteredSourceRepositoryTags = this.tagSorter.sortTags(filteredSourceRepositoryTags);
+        this.logger.logTagsMatched(filteredSourceRepositoryTags.length, 'source');
+        this.logger.logTagsToBeCopied(filteredSourceRepositoryTags, inputs.sourceRepository, inputs.targetRepository);
+        for (const tag of filteredSourceRepositoryTags) {
+            await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
+        }
+    }
+    async post(inputs) {
+        await this.loginAction.post(inputs);
+        await this.installAction.post();
+    }
+};
+Action = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject(Action$2)),
+    __param(1, inject(Action$1)),
+    __param(2, inject('RegClientInterface')),
+    __param(3, inject('TagFilterInterface')),
+    __param(4, inject('TagSorterInterface')),
+    __param(5, inject('LoggerInterface')),
+    __metadata("design:paramtypes", [Action$2,
+        Action$1, Object, Object, Object, Object])
+], Action);
+
 var core = {};
 
 var command = {};
@@ -29481,7 +29633,7 @@ let Downloader = class Downloader {
     }
 };
 Downloader = __decorate([
-    injectable()
+    scoped(Lifecycle$1.ContainerScoped)
 ], Downloader);
 
 var execExports = requireExec();
@@ -29500,11 +29652,14 @@ Exec = __decorate([
 
 var ioExports = requireIo();
 
-class Io {
+let Io = class Io {
     async mkdirP(path) {
         await ioExports.mkdirP(path);
     }
-}
+};
+Io = __decorate([
+    scoped(Lifecycle$1.ContainerScoped)
+], Io);
 
 let Logger = class Logger {
     core;
@@ -29551,129 +29706,9 @@ let Logger = class Logger {
 };
 Logger = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
-    __param(0, inject(Core)),
-    __metadata("design:paramtypes", [Core])
+    __param(0, inject('CoreInterface')),
+    __metadata("design:paramtypes", [Object])
 ], Logger);
-
-class RegCtlBinary {
-    installationDirectory;
-    version;
-    platform;
-    arch;
-    repositoryBaseUrl = 'https://github.com/regclient/regclient';
-    constructor(installationDirectory, version, platform, arch) {
-        this.installationDirectory = installationDirectory;
-        this.version = version;
-        this.platform = platform;
-        this.arch = arch;
-    }
-    buildDownloadUrl() {
-        let urlWithoutBinaryName = `${this.repositoryBaseUrl}/releases/download/${this.version}`;
-        if (this.version === 'latest') {
-            urlWithoutBinaryName = `${this.repositoryBaseUrl}/releases/latest/download`;
-        }
-        return `${urlWithoutBinaryName}/${this.getBinaryName() + this.getBinaryExtension()}`;
-    }
-    getBinaryName() {
-        switch (`${this.platform}-${this.arch}`) {
-            case 'linux-x64':
-                return 'regctl-linux-amd64';
-            case 'linux-arm64':
-                return 'regctl-linux-arm64';
-            case 'darwin-x64':
-                return 'regctl-darwin-amd64';
-            case 'darwin-arm64':
-                return 'regctl-darwin-arm64';
-            case 'win32-x64':
-                return 'regctl-windows-amd64';
-            default:
-                throw new Error(`Unsupported platform/arch: ${this.platform}/${this.arch}`);
-        }
-    }
-    getInstallationPath() {
-        return require$$1$5.join(this.installationDirectory, 'regctl' + this.getBinaryExtension());
-    }
-    getBinaryExtension() {
-        return this.platform === 'win32' ? '.exe' : '';
-    }
-}
-
-let RegCtlBinaryBuilder = class RegCtlBinaryBuilder {
-    home;
-    core;
-    constructor(home, core) {
-        this.home = home;
-        this.core = core;
-    }
-    build(version) {
-        const installDir = require$$1$5.join(this.home, '.regctl', 'bin');
-        return new RegCtlBinary(installDir, version, this.core.platform(), this.core.platformArch());
-    }
-};
-RegCtlBinaryBuilder = __decorate([
-    injectable(),
-    __param(0, inject('ENV_HOME')),
-    __param(1, inject(Core)),
-    __metadata("design:paramtypes", [String, Core])
-], RegCtlBinaryBuilder);
-
-let Action$2 = class Action {
-    regCtlBinaryBuilder;
-    io;
-    downloader;
-    exec;
-    core;
-    logger;
-    constructor(regCtlBinaryBuilder, io, downloader, exec, core, logger) {
-        this.regCtlBinaryBuilder = regCtlBinaryBuilder;
-        this.io = io;
-        this.downloader = downloader;
-        this.exec = exec;
-        this.core = core;
-        this.logger = logger;
-    }
-    async run() {
-        const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
-        await this.io.mkdirP(regCtlBinary.installationDirectory);
-        try {
-            await this.exec.exec('rm', [regCtlBinary.getInstallationPath()]);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        }
-        catch (error) {
-            this.logger.logRegCtlNotInstalledYet();
-        }
-        await this.downloader.downloadFile(regCtlBinary.buildDownloadUrl(), regCtlBinary.getInstallationPath());
-        await this.exec.exec('chmod', ['+x', regCtlBinary.getInstallationPath()]);
-        this.logger.logRegCtlInstalled(regCtlBinary.getInstallationPath(), regCtlBinary.version);
-        this.core.addPath(regCtlBinary.installationDirectory);
-        await this.exec.exec('regctl', ['version']);
-    }
-    async post() {
-        const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
-        try {
-            await this.exec.exec('rm', [regCtlBinary.getInstallationPath()]);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        }
-        catch (error) {
-            this.logger.logRegCtlCouldNotBeDeleted(regCtlBinary.getInstallationPath());
-        }
-    }
-};
-Action$2 = __decorate([
-    injectable(),
-    __param(0, inject(RegCtlBinaryBuilder)),
-    __param(1, inject(Io)),
-    __param(2, inject(Downloader)),
-    __param(3, inject(Exec)),
-    __param(4, inject(Core)),
-    __param(5, inject(Logger)),
-    __metadata("design:paramtypes", [RegCtlBinaryBuilder,
-        Io,
-        Downloader,
-        Exec,
-        Core,
-        Logger])
-], Action$2);
 
 var yoctoQueue;
 var hasRequiredYoctoQueue;
@@ -29849,51 +29884,6 @@ RegClientConcurrencyLimiter = __decorate([
     __metadata("design:paramtypes", [Number])
 ], RegClientConcurrencyLimiter);
 
-let RegClient = class RegClient {
-    exec;
-    concurrencyLimiter;
-    constructor(exec, concurrencyLimiter) {
-        this.exec = exec;
-        this.concurrencyLimiter = concurrencyLimiter;
-    }
-    async listTagsInRepository(repository) {
-        const output = await this.exec.getExecOutput('regctl', ['tag', 'ls', repository], { silent: true });
-        return output.stdout.trim().split('\n');
-    }
-    async logIntoRegistry(credentials) {
-        const args = ['registry', 'login'];
-        if (credentials.registry !== null) {
-            args.push(credentials.registry);
-        }
-        args.push('-u', credentials.username, '--pass-stdin');
-        await this.exec.exec('regctl', args, {
-            input: Buffer.from(credentials.password)
-        });
-    }
-    async logoutFromRegistry(credentials) {
-        const args = ['registry', 'logout'];
-        if (credentials.registry !== null) {
-            args.push(credentials.registry);
-        }
-        await this.exec.exec('regctl', args);
-    }
-    async copyImageFromSourceToTarget(sourceRepository, sourceTag, targetRepository, targetTag) {
-        await this.concurrencyLimiter.execute(() => this.exec.exec('regctl', [
-            'image',
-            'copy',
-            `${sourceRepository}:${sourceTag}`,
-            `${targetRepository}:${targetTag}`
-        ]));
-    }
-};
-RegClient = __decorate([
-    scoped(Lifecycle$1.ContainerScoped),
-    __param(0, inject(Exec)),
-    __param(1, inject(RegClientConcurrencyLimiter)),
-    __metadata("design:paramtypes", [Exec,
-        RegClientConcurrencyLimiter])
-], RegClient);
-
 let RegClientCredentialsBuilder = class RegClientCredentialsBuilder {
     build(inputs) {
         const sourceRegistry = inputs.sourceRepository.split('/').length === 2
@@ -29920,62 +29910,67 @@ RegClientCredentialsBuilder = __decorate([
     scoped(Lifecycle$1.ContainerScoped)
 ], RegClientCredentialsBuilder);
 
-let Action$1 = class Action {
-    credentialsBuilder;
-    regClient;
-    logger;
+class RegCtlBinary {
+    installationDirectory;
+    version;
+    platform;
+    arch;
+    repositoryBaseUrl = 'https://github.com/regclient/regclient';
+    constructor(installationDirectory, version, platform, arch) {
+        this.installationDirectory = installationDirectory;
+        this.version = version;
+        this.platform = platform;
+        this.arch = arch;
+    }
+    buildDownloadUrl() {
+        let urlWithoutBinaryName = `${this.repositoryBaseUrl}/releases/download/${this.version}`;
+        if (this.version === 'latest') {
+            urlWithoutBinaryName = `${this.repositoryBaseUrl}/releases/latest/download`;
+        }
+        return `${urlWithoutBinaryName}/${this.getBinaryName() + this.getBinaryExtension()}`;
+    }
+    getBinaryName() {
+        switch (`${this.platform}-${this.arch}`) {
+            case 'linux-x64':
+                return 'regctl-linux-amd64';
+            case 'linux-arm64':
+                return 'regctl-linux-arm64';
+            case 'darwin-x64':
+                return 'regctl-darwin-amd64';
+            case 'darwin-arm64':
+                return 'regctl-darwin-arm64';
+            case 'win32-x64':
+                return 'regctl-windows-amd64';
+            default:
+                throw new Error(`Unsupported platform/arch: ${this.platform}/${this.arch}`);
+        }
+    }
+    getInstallationPath() {
+        return require$$1$5.join(this.installationDirectory, 'regctl' + this.getBinaryExtension());
+    }
+    getBinaryExtension() {
+        return this.platform === 'win32' ? '.exe' : '';
+    }
+}
+
+let RegCtlBinaryBuilder = class RegCtlBinaryBuilder {
+    home;
     core;
-    constructor(credentialsBuilder, regClient, logger, core) {
-        this.credentialsBuilder = credentialsBuilder;
-        this.regClient = regClient;
-        this.logger = logger;
+    constructor(home, core) {
+        this.home = home;
         this.core = core;
     }
-    async run(inputs) {
-        const regClientCredentials = this.credentialsBuilder.build(inputs);
-        if (!inputs.loginToSourceRepository) {
-            this.logger.logSkipLoginToRepository('source');
-        }
-        else if (regClientCredentials.source.username === '' ||
-            regClientCredentials.source.password === '') {
-            this.core.setFailed('Source repository credentials (username and/or password) are missing.');
-        }
-        else {
-            await this.regClient.logIntoRegistry(regClientCredentials.source);
-        }
-        if (!inputs.loginToTargetRepository) {
-            this.logger.logSkipLoginToRepository('target');
-        }
-        else if (regClientCredentials.target.username === '' ||
-            regClientCredentials.target.password === '') {
-            this.core.setFailed('Target repository credentials (username and/or password) are missing.');
-        }
-        else {
-            await this.regClient.logIntoRegistry(regClientCredentials.target);
-        }
-    }
-    async post(inputs) {
-        if (inputs.loginToSourceRepository) {
-            this.logger.logLoggingOutFromRepository('source');
-            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).source);
-        }
-        if (inputs.loginToTargetRepository) {
-            this.logger.logLoggingOutFromRepository('target');
-            await this.regClient.logoutFromRegistry(this.credentialsBuilder.build(inputs).target);
-        }
+    build(version) {
+        const installDir = require$$1$5.join(this.home, '.regctl', 'bin');
+        return new RegCtlBinary(installDir, version, this.core.platform(), this.core.platformArch());
     }
 };
-Action$1 = __decorate([
+RegCtlBinaryBuilder = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
-    __param(0, inject(RegClientCredentialsBuilder)),
-    __param(1, inject(RegClient)),
-    __param(2, inject(Logger)),
-    __param(3, inject(Core)),
-    __metadata("design:paramtypes", [RegClientCredentialsBuilder,
-        RegClient,
-        Logger,
-        Core])
-], Action$1);
+    __param(0, inject('ENV_HOME')),
+    __param(1, inject('CoreInterface')),
+    __metadata("design:paramtypes", [String, Object])
+], RegCtlBinaryBuilder);
 
 var balancedMatch;
 var hasRequiredBalancedMatch;
@@ -32085,57 +32080,8 @@ TagSorter = __decorate([
     scoped(Lifecycle$1.ContainerScoped)
 ], TagSorter);
 
-let Action = class Action {
-    installAction;
-    loginAction;
-    regClient;
-    tagFilter;
-    tagSorter;
-    logger;
-    constructor(installAction, loginAction, regClient, tagFilter, tagSorter, logger) {
-        this.installAction = installAction;
-        this.loginAction = loginAction;
-        this.regClient = regClient;
-        this.tagFilter = tagFilter;
-        this.tagSorter = tagSorter;
-        this.logger = logger;
-    }
-    async run(inputs) {
-        await this.installAction.run();
-        await this.loginAction.run(inputs);
-        const sourceRepositoryTags = await this.regClient.listTagsInRepository(inputs.sourceRepository);
-        this.logger.logTagsFound(sourceRepositoryTags.length, 'source');
-        let filteredSourceRepositoryTags = this.tagFilter.filter(sourceRepositoryTags, inputs.tags);
-        filteredSourceRepositoryTags = this.tagSorter.sortTags(filteredSourceRepositoryTags);
-        this.logger.logTagsMatched(filteredSourceRepositoryTags.length, 'source');
-        this.logger.logTagsToBeCopied(filteredSourceRepositoryTags, inputs.sourceRepository, inputs.targetRepository);
-        for (const tag of filteredSourceRepositoryTags) {
-            await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
-        }
-    }
-    async post(inputs) {
-        await this.loginAction.post(inputs);
-        await this.installAction.post();
-    }
-};
-Action = __decorate([
-    scoped(Lifecycle$1.ContainerScoped),
-    __param(0, inject(Action$2)),
-    __param(1, inject(Action$1)),
-    __param(2, inject(RegClient)),
-    __param(3, inject(TagFilter)),
-    __param(4, inject(TagSorter)),
-    __param(5, inject(Logger)),
-    __metadata("design:paramtypes", [Action$2,
-        Action$1,
-        RegClient,
-        TagFilter,
-        TagSorter,
-        Logger])
-], Action);
-
 async function run() {
-    const core = instance.resolve(Core);
+    const core = instance.resolve('CoreInterface');
     prepareContainer(core);
     const inputs = buildInputs(core);
     const action = instance.resolve(Action);
@@ -32144,7 +32090,7 @@ async function run() {
     }
     catch (error) {
         if (error instanceof Error) {
-            const core = instance.resolve(Core);
+            const core = instance.resolve('CoreInterface');
             core.setFailed(error.message);
         }
     }
@@ -32188,6 +32134,22 @@ function prepareContainer(core) {
         core.setFailed('HOME environment variable is not set');
     }
     instance.register('ENV_HOME', { useValue: envHome });
+    instance.register('CoreInterface', { useValue: Core });
+    instance.register('DownloaderInterface', { useClass: Downloader });
+    instance.register('ExecInterface', { useClass: Exec });
+    instance.register('IoInterface', { useClass: Io });
+    instance.register('LoggerInterface', { useClass: Logger });
+    instance.register('RegClientConcurrencyLimiterInterface', {
+        useClass: RegClientConcurrencyLimiter
+    });
+    instance.register('RegCtlBinaryBuilderInterface', {
+        useClass: RegCtlBinaryBuilder
+    });
+    instance.register('RegClientCredentialsBuilderInterface', {
+        useClass: RegClientCredentialsBuilder
+    });
+    instance.register('TagFilterInterface', { useClass: TagFilter });
+    instance.register('TagSorterInterface', { useClass: TagSorter });
 }
 function parseLoginToInput(input) {
     return input === 'true' || input === '1';
