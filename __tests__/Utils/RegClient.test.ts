@@ -1,43 +1,58 @@
-import { Exec } from '../../src/Utils/GitHubAction/Exec.js'
+import { It, Mock } from 'moq.ts'
+import { ExecInterface } from '../../src/Utils/GitHubAction/ExecInterface.js'
 import { RegClient } from '../../src/Utils/RegClient.js'
 import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClient/RegClientConcurrencyLimiter.js'
-import { jest } from '@jest/globals'
-
-jest.mock('../../src/Utils/GitHubAction/Exec.js')
-const mockedExec = new Exec() as jest.Mocked<Exec>
+import { RegClientConcurrencyLimiterInterface } from '../../src/Utils/RegClient/RegClientConcurrencyLimiterInterface.js'
+import _ from 'lodash'
+import { setupMockedExecInterface } from '../../__fixtures__/Utils/GitHubAction/setupMockedExecInterface.js'
+import { setupRegClientConcurrencyLimiterInterface } from '../../__fixtures__/Utils/RegClient/setupRegClientConcurrencyLimiterInterface.js'
 
 describe('RegClient', () => {
+  let mockedExec: Mock<ExecInterface>
+  let mockedConcurrencyLimiter: Mock<RegClientConcurrencyLimiterInterface>
+  let regClient: RegClient
+
   beforeEach(() => {
-    jest.clearAllMocks()
+    mockedExec = setupMockedExecInterface()
+    mockedExec
+      .setup((exec) => exec.exec(It.IsAny(), It.IsAny(), It.IsAny()))
+      .returnsAsync(1)
+
+    mockedConcurrencyLimiter = setupRegClientConcurrencyLimiterInterface()
+
+    regClient = new RegClient(
+      mockedExec.object(),
+      mockedConcurrencyLimiter.object()
+    )
   })
 
   it('should list tags in repository', async () => {
     const repository = 'test-repo'
     const tags = 'v1.0.0\nv1.1.0\nlatest'
 
-    mockedExec.getExecOutput = jest.fn() as jest.MockedFunction<
-      typeof Exec.prototype.getExecOutput
-    >
-    mockedExec.getExecOutput.mockResolvedValue({
-      stdout: tags,
-      stderr: '',
-      exitCode: 0
-    })
-
-    const regClient = new RegClient(
-      mockedExec,
-      new RegClientConcurrencyLimiter()
-    )
+    mockedExec
+      .setup((exec) =>
+        exec.getExecOutput(
+          'regctl',
+          It.Is((value) => _.isEqual(['tag', 'ls', repository], value)),
+          It.Is((value) => _.isEqual({ silent: true }, value))
+        )
+      )
+      .returnsAsync({ stdout: tags, stderr: '', exitCode: 0 })
 
     const result = await regClient.listTagsInRepository(repository)
     expect(result).toEqual(['v1.0.0', 'v1.1.0', 'latest'])
-    expect(mockedExec.getExecOutput).toHaveBeenCalledWith(
-      'regctl',
-      ['tag', 'ls', repository],
-      { silent: true }
+
+    mockedExec.verify((exec) =>
+      exec.getExecOutput(
+        'regctl',
+        It.Is((value) => _.isEqual(['tag', 'ls', repository], value)),
+        It.Is((value) => _.isEqual({ silent: true }, value))
+      )
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should log into registry with provided credentials', async () => {
     const credentials = {
       registry: 'test-registry',
@@ -45,33 +60,32 @@ describe('RegClient', () => {
       password: 'test-password'
     }
 
-    mockedExec.exec = jest.fn() as jest.MockedFunction<
-      typeof Exec.prototype.exec
-    >
-
-    const regClient = new RegClient(
-      mockedExec,
-      new RegClientConcurrencyLimiter()
-    )
-
     await regClient.logIntoRegistry(credentials)
 
-    expect(mockedExec.exec).toHaveBeenCalledWith(
-      'regctl',
-      [
-        'registry',
-        'login',
-        'test-registry',
-        '-u',
-        'test-username',
-        '--pass-stdin'
-      ],
-      {
-        input: Buffer.from('test-password')
-      }
+    mockedExec.verify((exec) =>
+      exec.exec(
+        'regctl',
+        It.Is((value) =>
+          _.isEqual(
+            [
+              'registry',
+              'login',
+              'test-registry',
+              '-u',
+              'test-username',
+              '--pass-stdin'
+            ],
+            value
+          )
+        ),
+        It.Is((value) =>
+          _.isEqual({ input: Buffer.from('test-password') }, value)
+        )
+      )
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should logout from registry with provided credentials', async () => {
     const credentials = {
       registry: 'test-registry',
@@ -79,36 +93,27 @@ describe('RegClient', () => {
       password: 'test-password'
     }
 
-    mockedExec.exec = jest.fn() as jest.MockedFunction<
-      typeof Exec.prototype.exec
-    >
-
-    const regClient = new RegClient(
-      mockedExec,
-      new RegClientConcurrencyLimiter()
-    )
-
     await regClient.logoutFromRegistry(credentials)
 
-    expect(mockedExec.exec).toHaveBeenCalledWith('regctl', [
-      'registry',
-      'logout',
-      'test-registry'
-    ])
+    mockedExec.verify((exec) =>
+      exec.exec(
+        'regctl',
+        It.Is((value) =>
+          _.isEqual(['registry', 'logout', 'test-registry'], value)
+        )
+      )
+    )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should copy image from source to target', async () => {
     const sourceRepository = 'source-repo'
     const sourceTag = 'v1.0.0'
     const targetRepository = 'target-repo'
     const targetTag = 'v1.0.0'
 
-    mockedExec.exec = jest.fn() as jest.MockedFunction<
-      typeof Exec.prototype.exec
-    >
-
-    const regClient = new RegClient(
-      mockedExec,
+    regClient = new RegClient(
+      mockedExec.object(),
       new RegClientConcurrencyLimiter()
     )
 
@@ -118,11 +123,17 @@ describe('RegClient', () => {
       targetRepository,
       targetTag
     )
-    expect(mockedExec.exec).toHaveBeenCalledWith('regctl', [
-      'image',
-      'copy',
-      `${sourceRepository}:${sourceTag}`,
-      `${targetRepository}:${targetTag}`
-    ])
+
+    mockedExec.verify((exec) =>
+      exec.exec(
+        'regctl',
+        It.Is((value) =>
+          _.isEqual(
+            ['image', 'copy', 'source-repo:v1.0.0', 'target-repo:v1.0.0'],
+            value
+          )
+        )
+      )
+    )
   })
 })

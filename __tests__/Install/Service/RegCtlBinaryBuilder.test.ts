@@ -1,28 +1,25 @@
-import { Core } from '../../../src/Utils/GitHubAction/Core.js'
+import { CoreInterface } from '../../../src/Utils/GitHubAction/CoreInterface.js'
+import { Mock } from 'moq.ts'
 import { RegCtlBinary } from '../../../src/Install/RegCtlBinary.js'
 import { RegCtlBinaryBuilder } from '../../../src/Install/Service/RegCtlBinaryBuilder.js'
-import { jest } from '@jest/globals'
-
-const mockedCore = new Core() as jest.Mocked<Core>
-mockedCore.platform = jest.fn() as jest.MockedFunction<
-  typeof Core.prototype.platform
->
-mockedCore.platformArch = jest.fn() as jest.MockedFunction<
-  typeof Core.prototype.platformArch
->
+import { setupMockedCoreInterface } from '../../../__fixtures__/Utils/GitHubAction/setupMockedCoreInterface.js'
 
 describe('RegCtlBinaryBuilder', () => {
+  let mockedCore: Mock<CoreInterface>
   let regCtlBinaryBuilder: RegCtlBinaryBuilder
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    mockedCore = setupMockedCoreInterface()
 
-    regCtlBinaryBuilder = new RegCtlBinaryBuilder('/home/user', mockedCore)
+    regCtlBinaryBuilder = new RegCtlBinaryBuilder(
+      '/home/user',
+      mockedCore.object()
+    )
   })
 
   it('should build RegCtlBinary with correct properties', () => {
-    mockedCore.platform.mockReturnValue('linux')
-    mockedCore.platformArch.mockReturnValue('x64')
+    mockedCore.setup((core) => core.platform()).returns('linux')
+    mockedCore.setup((core) => core.platformArch()).returns('x64')
 
     const version = 'latest'
     const regCtlBinary = regCtlBinaryBuilder.build(version)

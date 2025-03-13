@@ -1,67 +1,40 @@
+import { It, Mock, Times } from 'moq.ts'
 import { Action } from '../../src/Login/Action.js'
-import { Core } from '../../src/Utils/GitHubAction/Core.js'
-import { Exec } from '../../src/Utils/GitHubAction/Exec.js'
+import { CoreInterface } from '../../src/Utils/GitHubAction/CoreInterface.js'
 import { Inputs } from '../../src/Inputs.js'
-import { Logger } from '../../src/Utils/Logger.js'
-import { RegClient } from '../../src/Utils/RegClient.js'
-import { RegClientConcurrencyLimiter } from '../../src/Utils/RegClient/RegClientConcurrencyLimiter.js'
+import { LoggerInterface } from '../../src/Utils/LoggerInterface.js'
 import { RegClientCredentialsBuilder } from '../../src/Login/Service/RegClientCredentialsBuilder.js'
-import { jest } from '@jest/globals'
-
-const mockedCore = new Core() as jest.Mocked<Core>
-const mockedExec = new Exec() as jest.Mocked<Exec>
-const mockedLogger = new Logger(mockedCore) as jest.Mocked<Logger>
-const mockedRegClientCredentialsBuilder =
-  new RegClientCredentialsBuilder() as jest.Mocked<RegClientCredentialsBuilder>
-const mockedRegClient = new RegClient(
-  mockedExec,
-  new RegClientConcurrencyLimiter()
-) as jest.Mocked<RegClient>
+import { RegClientCredentialsBuilderInterface } from '../../src/Login/Service/RegClientCredentialsBuilderInterface.js'
+import { RegClientInterface } from '../../src/Utils/RegClientInterface.js'
+import _ from 'lodash'
+import { setupMockedCoreInterface } from '../../__fixtures__/Utils/GitHubAction/setupMockedCoreInterface.js'
+import { setupMockedLoggerInterface } from '../../__fixtures__/Utils/setupMockedLoggerInterface.js'
+import { setupMockedRegClientCredentialsBuilderInterface } from '../../__fixtures__/Login/Service/setupMockedRegClientCredentialsBuilderInterface.js'
+import { setupMockedRegClientInterface } from '../../__fixtures__/Utils/setupMockedRegClientInterface.js'
 
 describe('Login/Action', () => {
+  let mockedRegClientCredentialsBuilder: Mock<RegClientCredentialsBuilderInterface>
+  let mockedRegClient: Mock<RegClientInterface>
+  let mockedCore: Mock<CoreInterface>
+  let mockedLogger: Mock<LoggerInterface>
   let action: Action
 
   beforeEach(() => {
-    jest.clearAllMocks()
-
-    mockedCore.setFailed = jest.fn() as jest.MockedFunction<
-      typeof Core.prototype.setFailed
-    >
-
-    mockedRegClientCredentialsBuilder.build = jest.fn() as jest.MockedFunction<
-      typeof RegClientCredentialsBuilder.prototype.build
-    >
-    mockedLogger.logTagsFound = jest.fn() as jest.MockedFunction<
-      typeof Logger.prototype.logTagsFound
-    >
-    mockedLogger.logTagsMatched = jest.fn() as jest.MockedFunction<
-      typeof Logger.prototype.logTagsMatched
-    >
-    mockedLogger.logTagsToBeCopied = jest.fn() as jest.MockedFunction<
-      typeof Logger.prototype.logTagsToBeCopied
-    >
-    mockedLogger.logLoggingOutFromRepository = jest.fn() as jest.MockedFunction<
-      typeof Logger.prototype.logLoggingOutFromRepository
-    >
-    mockedLogger.logSkipLoginToRepository = jest.fn() as jest.MockedFunction<
-      typeof Logger.prototype.logSkipLoginToRepository
-    >
-
-    mockedRegClient.logIntoRegistry = jest.fn() as jest.MockedFunction<
-      typeof RegClient.prototype.logIntoRegistry
-    >
-    mockedRegClient.logoutFromRegistry = jest.fn() as jest.MockedFunction<
-      typeof RegClient.prototype.logoutFromRegistry
-    >
+    mockedRegClientCredentialsBuilder =
+      setupMockedRegClientCredentialsBuilderInterface()
+    mockedRegClient = setupMockedRegClientInterface()
+    mockedCore = setupMockedCoreInterface()
+    mockedLogger = setupMockedLoggerInterface()
 
     action = new Action(
-      mockedRegClientCredentialsBuilder,
-      mockedRegClient,
-      mockedLogger,
-      mockedCore
+      mockedRegClientCredentialsBuilder.object(),
+      mockedRegClient.object(),
+      mockedLogger.object(),
+      mockedCore.object()
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should skip login to source repository if loginToSourceRepository is false', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
@@ -76,15 +49,23 @@ describe('Login/Action', () => {
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.run(inputs)
 
-    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledTimes(1)
-    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledWith('source')
-    expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledTimes(1)
+    mockedLogger.verify(
+      (logger) => logger.logSkipLoginToRepository('source'),
+      Times.Once()
+    )
+    mockedRegClient.verify(
+      (regClient) => regClient.logIntoRegistry(It.IsAny()),
+      Times.Once()
+    )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should throw an error if source repository credentials are missing', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
@@ -99,16 +80,22 @@ describe('Login/Action', () => {
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.run(inputs)
 
-    expect(mockedCore.setFailed).toHaveBeenCalledTimes(1)
-    expect(mockedCore.setFailed).toHaveBeenCalledWith(
-      'Source repository credentials (username and/or password) are missing.'
+    mockedCore.verify(
+      (core) =>
+        core.setFailed(
+          'Source repository credentials (username and/or password) are missing.'
+        ),
+      Times.Once()
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should log into source repository if credentials are provided', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
@@ -116,22 +103,36 @@ describe('Login/Action', () => {
       sourceRepositoryUsername: 'sourceUser',
       sourceRepositoryPassword: 'sourcePass',
       targetRepository: 'target/repo',
-      loginToTargetRepository: true,
+      loginToTargetRepository: false,
       targetRepositoryUsername: 'targetUser',
       targetRepositoryPassword: 'targetPass',
       tags: 'latest'
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.run(inputs)
 
-    expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledWith(
-      credentials.source
+    mockedRegClient.verify(
+      (regClient) =>
+        regClient.logIntoRegistry(
+          It.Is((value) => _.isEqual(credentials.source, value))
+        ),
+      Times.Once()
+    )
+    mockedRegClient.verify(
+      (regClient) =>
+        regClient.logIntoRegistry(
+          It.Is((value) => _.isEqual(credentials.target, value))
+        ),
+      Times.Never()
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should skip login to target repository if loginToTargetRepository is false', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
@@ -146,15 +147,23 @@ describe('Login/Action', () => {
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.run(inputs)
 
-    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledTimes(1)
-    expect(mockedLogger.logSkipLoginToRepository).toHaveBeenCalledWith('target')
-    expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledTimes(1)
+    mockedLogger.verify(
+      (logger) => logger.logSkipLoginToRepository('target'),
+      Times.Once()
+    )
+    mockedRegClient.verify(
+      (regClient) => regClient.logIntoRegistry(It.IsAny()),
+      Times.Once()
+    )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should throw an error if target repository credentials are missing', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
@@ -169,20 +178,26 @@ describe('Login/Action', () => {
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.run(inputs)
 
-    expect(mockedCore.setFailed).toHaveBeenCalledTimes(1)
-    expect(mockedCore.setFailed).toHaveBeenCalledWith(
-      'Target repository credentials (username and/or password) are missing.'
+    mockedCore.verify(
+      (core) =>
+        core.setFailed(
+          'Target repository credentials (username and/or password) are missing.'
+        ),
+      Times.Once()
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should log into target repository if credentials are provided', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
-      loginToSourceRepository: true,
+      loginToSourceRepository: false,
       sourceRepositoryUsername: 'sourceUser',
       sourceRepositoryPassword: 'sourcePass',
       targetRepository: 'target/repo',
@@ -193,15 +208,29 @@ describe('Login/Action', () => {
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.run(inputs)
 
-    expect(mockedRegClient.logIntoRegistry).toHaveBeenCalledWith(
-      credentials.target
+    mockedRegClient.verify(
+      (regClient) =>
+        regClient.logIntoRegistry(
+          It.Is((value) => _.isEqual(credentials.source, value))
+        ),
+      Times.Never()
+    )
+    mockedRegClient.verify(
+      (regClient) =>
+        regClient.logIntoRegistry(
+          It.Is((value) => _.isEqual(credentials.target, value))
+        ),
+      Times.Once()
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should log out from source and target repositories if loginToSourceRepository and loginToTargetRepository are true', async () => {
     const inputs: Inputs = {
       sourceRepository: 'source/repo',
@@ -216,21 +245,27 @@ describe('Login/Action', () => {
     }
 
     const credentials = new RegClientCredentialsBuilder().build(inputs)
-    mockedRegClientCredentialsBuilder.build.mockReturnValue(credentials)
+    mockedRegClientCredentialsBuilder
+      .setup((builder) => builder.build(It.IsAny()))
+      .returns(credentials)
 
     await action.post(inputs)
 
-    expect(mockedLogger.logLoggingOutFromRepository).toHaveBeenCalledWith(
-      'source'
+    mockedLogger.verify(
+      (logger) => logger.logLoggingOutFromRepository('source'),
+      Times.Once()
     )
-    expect(mockedLogger.logLoggingOutFromRepository).toHaveBeenCalledWith(
-      'target'
+    mockedLogger.verify(
+      (logger) => logger.logLoggingOutFromRepository('target'),
+      Times.Once()
     )
-    expect(mockedRegClient.logoutFromRegistry).toHaveBeenCalledWith(
-      credentials.source
+    mockedRegClient.verify(
+      (regClient) => regClient.logoutFromRegistry(credentials.source),
+      Times.Once()
     )
-    expect(mockedRegClient.logoutFromRegistry).toHaveBeenCalledWith(
-      credentials.target
+    mockedRegClient.verify(
+      (regClient) => regClient.logoutFromRegistry(credentials.target),
+      Times.Once()
     )
   })
 })

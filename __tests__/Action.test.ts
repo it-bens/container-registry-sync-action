@@ -1,36 +1,29 @@
+import { It, Mock, Times } from 'moq.ts'
 import { Action } from '../src/Action.js'
 import { Inputs } from '../src/Inputs.js'
+import { Action as InstallAction } from '../src/Install/Action.js'
+import { LoggerInterface } from '../src/Utils/LoggerInterface.js'
 import { Action as LoginAction } from '../src/Login/Action.js'
-import { buildMockedActionDependencies } from './helper.js'
-import { jest } from '@jest/globals'
-
-const ENV_HOME = 'envHome'
-
-const {
-  regClient: mockedRegClient,
-  logger: mockedLogger,
-  installAction: mockedInstallAction,
-  loginAction: mockedLoginAction,
-  tagFilter: mockedTagFilter,
-  tagSorter: mockedTagSorter
-} = buildMockedActionDependencies(ENV_HOME)
+import { RegClientInterface } from '../src/Utils/RegClientInterface.js'
+import { TagFilterInterface } from '../src/Utils/TagFilterInterface.js'
+import { TagSorterInterface } from '../src/Utils/TagSorterInterface.js'
+import _ from 'lodash'
+import { setupMockedLoggerInterface } from '../__fixtures__/Utils/setupMockedLoggerInterface.js'
+import { setupMockedRegClientInterface } from '../__fixtures__/Utils/setupMockedRegClientInterface.js'
+import { setupMockedTagFilterInterface } from '../__fixtures__/Utils/setupMockedTagFilterInterface.js'
+import { setupMockedTagSorterInterface } from '../__fixtures__/Utils/setupMockedTagSorterInterface.js'
 
 describe('Action', () => {
+  let mockedInstallAction: Mock<InstallAction>
+  let mockedLoginAction: Mock<LoginAction>
+  let mockedRegClient: Mock<RegClientInterface>
+  let mockedTagFilter: Mock<TagFilterInterface>
+  let mockedTagSorter: Mock<TagSorterInterface>
+  let mockedLogger: Mock<LoggerInterface>
   let action: Action
   let inputs: Inputs
 
   beforeEach(() => {
-    jest.clearAllMocks()
-
-    action = new Action(
-      mockedInstallAction,
-      mockedLoginAction,
-      mockedRegClient,
-      mockedTagFilter,
-      mockedTagSorter,
-      mockedLogger
-    )
-
     inputs = {
       sourceRepository: 'source-repo',
       loginToSourceRepository: true,
@@ -42,55 +35,97 @@ describe('Action', () => {
       targetRepositoryPassword: 'password',
       tags: '*'
     }
+
+    mockedInstallAction = new Mock<InstallAction>()
+    mockedLoginAction = new Mock<LoginAction>()
+    mockedRegClient = setupMockedRegClientInterface()
+    mockedTagFilter = setupMockedTagFilterInterface()
+    mockedTagSorter = setupMockedTagSorterInterface()
+    mockedLogger = setupMockedLoggerInterface()
+
+    mockedInstallAction
+      .setup((installAction) => installAction.run())
+      .returnsAsync(undefined)
+    mockedInstallAction
+      .setup((installAction) => installAction.post())
+      .returnsAsync(undefined)
+    mockedLoginAction
+      .setup((loginAction) => loginAction.run(It.IsAny()))
+      .returnsAsync(undefined)
+    mockedLoginAction
+      .setup((loginAction) => loginAction.post(It.IsAny()))
+      .returnsAsync(undefined)
+
+    action = new Action(
+      mockedInstallAction.object(),
+      mockedLoginAction.object(),
+      mockedRegClient.object(),
+      mockedTagFilter.object(),
+      mockedTagSorter.object(),
+      mockedLogger.object()
+    )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should run the action and log the correct messages', async () => {
     const sourceTags = ['tag1', 'tag2', 'tag3']
     const filteredTags = ['tag1', 'tag2']
 
-    mockedRegClient.listTagsInRepository.mockResolvedValue(sourceTags)
-    mockedTagFilter.filter.mockReturnValue(filteredTags)
-    mockedTagSorter.sortTags.mockReturnValue(filteredTags)
+    mockedRegClient
+      .setup((regClient) => regClient.listTagsInRepository(It.IsAny()))
+      .returnsAsync(sourceTags)
+    mockedTagFilter
+      .setup((tagFilter) => tagFilter.filter(It.IsAny(), It.IsAny()))
+      .returns(filteredTags)
+    mockedTagSorter
+      .setup((tagSorter) => tagSorter.sortTags(It.IsAny()))
+      .returns(filteredTags)
 
     await action.run(inputs)
 
-    expect(mockedInstallAction.run).toHaveBeenCalled()
-    expect(mockedLoginAction.run).toHaveBeenCalledWith(inputs)
-    expect(mockedRegClient.listTagsInRepository).toHaveBeenCalledWith(
-      'source-repo'
+    mockedInstallAction.verify((installAction) => installAction.run())
+    mockedLoginAction.verify((loginAction) =>
+      loginAction.run(It.Is((value) => _.isEqual(inputs, value)))
     )
-    expect(mockedLogger.logTagsFound).toHaveBeenCalledWith(3, 'source')
-    expect(mockedTagFilter.filter).toHaveBeenCalledWith(sourceTags, '*')
-    expect(mockedTagSorter.sortTags).toHaveBeenCalledWith(filteredTags)
-    expect(mockedLogger.logTagsMatched).toHaveBeenCalledWith(2, 'source')
-    expect(mockedLogger.logTagsToBeCopied).toHaveBeenCalledWith(
-      filteredTags,
-      'source-repo',
-      'target-repo'
+    mockedRegClient.verify((regClient) =>
+      regClient.listTagsInRepository('source-repo')
     )
-    expect(mockedRegClient.copyImageFromSourceToTarget).toHaveBeenCalledTimes(2)
-    expect(mockedRegClient.copyImageFromSourceToTarget).toHaveBeenCalledWith(
-      'source-repo',
-      'tag1',
-      'target-repo',
-      'tag1'
+    mockedLogger.verify((logger) => logger.logTagsFound(3, 'source'))
+    mockedTagFilter.verify((tagFilter) => tagFilter.filter(sourceTags, '*'))
+    mockedTagSorter.verify((tagSorter) => tagSorter.sortTags(filteredTags))
+    mockedLogger.verify((logger) => logger.logTagsMatched(2, 'source'))
+    mockedLogger.verify((logger) =>
+      logger.logTagsToBeCopied(filteredTags, 'source-repo', 'target-repo')
     )
-    expect(mockedRegClient.copyImageFromSourceToTarget).toHaveBeenCalledWith(
-      'source-repo',
-      'tag2',
-      'target-repo',
-      'tag2'
+    mockedRegClient.verify(
+      (regClient) =>
+        regClient.copyImageFromSourceToTarget(
+          'source-repo',
+          'tag1',
+          'target-repo',
+          'tag1'
+        ),
+      Times.Once()
+    )
+    mockedRegClient.verify(
+      (regClient) =>
+        regClient.copyImageFromSourceToTarget(
+          'source-repo',
+          'tag2',
+          'target-repo',
+          'tag2'
+        ),
+      Times.Once()
     )
   })
 
+  // eslint-disable-next-line jest/expect-expect
   it('should call post method of loginAction', async () => {
-    mockedLoginAction.post = jest.fn() as jest.MockedFunction<
-      typeof LoginAction.prototype.post
-    >
-
     await action.post(inputs)
 
-    expect(mockedLoginAction.post).toHaveBeenCalledWith(inputs)
-    expect(mockedInstallAction.post).toHaveBeenCalledWith()
+    mockedLoginAction.verify((loginAction) =>
+      loginAction.post(It.Is((value) => _.isEqual(inputs, value)))
+    )
+    mockedInstallAction.verify((installAction) => installAction.post())
   })
 })

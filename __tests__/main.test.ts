@@ -1,159 +1,169 @@
 import 'reflect-metadata'
 import { InjectionToken, container } from 'tsyringe'
+import { It, Mock, Times } from 'moq.ts'
 import { post, run } from '../src/main.js'
 import { Action } from '../src/Action.js'
-import { Core } from '../src/Utils/GitHubAction/Core.js'
+import { CoreInterface } from '../src/Utils/GitHubAction/CoreInterface.js'
 import { Inputs } from '../src/Inputs.js'
-import { buildMockedActionDependencies } from './helper.js'
+import _ from 'lodash'
 import { jest } from '@jest/globals'
 import MockedObject = jest.MockedObject
-
-const ENV_HOME = 'envHome'
-
-const mockedContainer = container as jest.Mocked<typeof container>
-mockedContainer.resolve = jest.fn() as jest.MockedFunction<
-  typeof container.resolve
->
-
-const {
-  regClient: mockedRegClient,
-  logger: mockedLogger,
-  installAction: mockedInstallAction,
-  loginAction: mockedLoginAction,
-  tagFilter: mockedTagFilter,
-  tagSorter: mockedTagSorter,
-  core: mockedCore
-} = buildMockedActionDependencies(ENV_HOME)
-const mockedAction = new Action(
-  mockedInstallAction,
-  mockedLoginAction,
-  mockedRegClient,
-  mockedTagFilter,
-  mockedTagSorter,
-  mockedLogger
-) as jest.Mocked<Action>
-
-const rawInputs: { [key: string]: string } = {
-  sourceRepository: 'source-repo',
-  loginToSourceRepository: 'true',
-  sourceRepositoryUsername: 'sourceUser',
-  sourceRepositoryPassword: 'sourcePass',
-  targetRepository: 'target-repo',
-  loginToTargetRepository: 'true',
-  targetRepositoryUsername: 'targetUser',
-  targetRepositoryPassword: 'targetPass',
-  tags: '*',
-  regClientConcurrency: '1'
-}
-const expectedInputs: Inputs = {
-  sourceRepository: 'source-repo',
-  loginToSourceRepository: true,
-  sourceRepositoryUsername: 'sourceUser',
-  sourceRepositoryPassword: 'sourcePass',
-  targetRepository: 'target-repo',
-  loginToTargetRepository: true,
-  targetRepositoryUsername: 'targetUser',
-  targetRepositoryPassword: 'targetPass',
-  tags: '*'
-}
+import { setupMockedCoreInterface } from '../__fixtures__/Utils/GitHubAction/setupMockedCoreInterface.js'
 
 describe('main', () => {
-  beforeEach(() => {
-    jest.clearAllMocks()
+  let rawInputs: { [key: string]: string }
+  let expectedInputs: Inputs
+  let mockedCore: Mock<CoreInterface>
+  let mockedContainer: jest.Mocked<typeof container>
+  let mockedAction: Mock<Action>
 
+  beforeEach(() => {
+    rawInputs = {
+      sourceRepository: 'source-repo',
+      loginToSourceRepository: 'true',
+      sourceRepositoryUsername: 'sourceUser',
+      sourceRepositoryPassword: 'sourcePass',
+      targetRepository: 'target-repo',
+      loginToTargetRepository: 'true',
+      targetRepositoryUsername: 'targetUser',
+      targetRepositoryPassword: 'targetPass',
+      tags: '*',
+      regClientConcurrency: '1'
+    }
+    expectedInputs = {
+      sourceRepository: 'source-repo',
+      loginToSourceRepository: true,
+      sourceRepositoryUsername: 'sourceUser',
+      sourceRepositoryPassword: 'sourcePass',
+      targetRepository: 'target-repo',
+      loginToTargetRepository: true,
+      targetRepositoryUsername: 'targetUser',
+      targetRepositoryPassword: 'targetPass',
+      tags: '*'
+    }
+
+    mockedCore = setupMockedCoreInterface()
+    mockedContainer = container as jest.Mocked<typeof container>
+    mockedAction = new Mock<Action>()
+
+    mockedCore
+      .setup((core) => core.getInput)
+      .returns((name: string): string => {
+        if (rawInputs[name] === undefined) {
+          throw new Error(`Unknown input: ${name}`)
+        }
+
+        return rawInputs[name]
+      })
+
+    mockedContainer.resolve = jest.fn() as jest.MockedFunction<
+      typeof container.resolve
+    >
     mockedContainer.resolve.mockImplementation(
-      <T = MockedObject<Action | Core>>(token: InjectionToken<T>): T => {
+      <T = MockedObject<Action | CoreInterface>>(
+        token: InjectionToken<T>
+      ): T => {
         if (token === Action) {
-          return mockedAction as T
+          return mockedAction.object() as T
         }
 
         if (token === 'CoreInterface') {
-          return mockedCore as T
+          return mockedCore.object() as T
         }
 
         throw new Error(`Unknown token: ${token.toString()}`)
       }
     )
 
-    mockedCore.getInput.mockImplementation((name: string): string => {
-      if (rawInputs[name] === undefined) {
-        throw new Error(`Unknown input: ${name}`)
-      }
-
-      return rawInputs[name]
-    })
-
-    mockedAction.run = jest.fn() as jest.MockedFunction<
-      typeof Action.prototype.run
-    >
-    mockedAction.post = jest.fn() as jest.MockedFunction<
-      typeof Action.prototype.post
-    >
+    mockedAction
+      .setup((action) => action.run(It.IsAny()))
+      .returnsAsync(undefined)
+    mockedAction
+      .setup((action) => action.post(It.IsAny()))
+      .returnsAsync(undefined)
   })
 
   describe('run', () => {
+    // eslint-disable-next-line jest/expect-expect
     it('should run the action', async () => {
       await run()
 
-      expect(mockedAction.run).toHaveBeenCalledWith(expectedInputs)
-      expect(mockedCore.setFailed).not.toHaveBeenCalled()
+      mockedAction.verify((action) =>
+        action.run(It.Is((value) => _.isEqual(expectedInputs, value)))
+      )
+      mockedCore.verify((core) => core.setFailed(It.IsAny()), Times.Never())
     })
 
+    // eslint-disable-next-line jest/expect-expect
     it('should handle errors during run', async () => {
       const error = new Error('Test error')
-      mockedAction.run.mockRejectedValueOnce(error)
+      mockedAction.setup((action) => action.run(It.IsAny())).throws(error)
 
       await run()
 
-      expect(mockedCore.setFailed).toHaveBeenCalledWith(error.message)
+      mockedCore.verify((core) => core.setFailed(error.message))
     })
 
+    // eslint-disable-next-line jest/expect-expect
     it('should handle invalid regClientConcurrency input (not a number)', async () => {
-      mockedCore.getInput.mockImplementation((name: string): string => {
-        if (name === 'regClientConcurrency') {
-          return 'invalid'
-        }
-        return rawInputs[name]
-      })
+      mockedCore
+        .setup((core) => core.getInput)
+        .returns((name: string): string => {
+          if (name === 'regClientConcurrency') {
+            return 'invalid'
+          }
+          return rawInputs[name]
+        })
 
       await run()
 
-      expect(mockedCore.setFailed).toHaveBeenCalledWith(
-        'regClientConcurrency must be a positive integer greater than 0'
+      mockedCore.verify((core) =>
+        core.setFailed(
+          'regClientConcurrency must be a positive integer greater than 0'
+        )
       )
     })
 
+    // eslint-disable-next-line jest/expect-expect
     it('should handle invalid regClientConcurrency input (<= 0)', async () => {
-      mockedCore.getInput.mockImplementation((name: string): string => {
-        if (name === 'regClientConcurrency') {
-          return '0'
-        }
-        return rawInputs[name]
-      })
+      mockedCore
+        .setup((core) => core.getInput)
+        .returns((name: string): string => {
+          if (name === 'regClientConcurrency') {
+            return '0'
+          }
+          return rawInputs[name]
+        })
 
       await run()
 
-      expect(mockedCore.setFailed).toHaveBeenCalledWith(
-        'regClientConcurrency must be a positive integer greater than 0'
+      mockedCore.verify((core) =>
+        core.setFailed(
+          'regClientConcurrency must be a positive integer greater than 0'
+        )
       )
     })
   })
 
   describe('post', () => {
+    // eslint-disable-next-line jest/expect-expect
     it('should post the action', async () => {
       await post()
 
-      expect(mockedAction.post).toHaveBeenCalledWith(expectedInputs)
-      expect(mockedCore.setFailed).not.toHaveBeenCalled()
+      mockedAction.verify((action) =>
+        action.post(It.Is((value) => _.isEqual(expectedInputs, value)))
+      )
+      mockedCore.verify((core) => core.setFailed(It.IsAny()), Times.Never())
     })
 
+    // eslint-disable-next-line jest/expect-expect
     it('should handle errors during post', async () => {
       const error = new Error('Test error')
-      mockedAction.post.mockRejectedValueOnce(error)
+      mockedAction.setup((action) => action.post(It.IsAny())).throws(error)
 
       await post()
 
-      expect(mockedCore.setFailed).toHaveBeenCalledWith(error.message)
+      mockedCore.verify((core) => core.setFailed(error.message))
     })
   })
 })
