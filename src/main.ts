@@ -7,10 +7,12 @@ import { Exec } from './Utils/GitHubAction/Exec.js'
 import { Inputs } from './Inputs.js'
 import { Io } from './Utils/GitHubAction/Io.js'
 import { Logger } from './Utils/Logger.js'
+import { Printer } from './Summary/Service/Printer.js'
 import { RegClient } from './Utils/RegClient.js'
 import { RegClientConcurrencyLimiter } from './Utils/RegClient/RegClientConcurrencyLimiter.js'
 import { RegClientCredentialsBuilder } from './Login/Service/RegClientCredentialsBuilder.js'
 import { RegCtlBinaryBuilder } from './Install/Service/RegCtlBinaryBuilder.js'
+import { RegCtlVersionBuilder } from './Install/Service/RegCtlVersionBuilder.js'
 import { TagFilter } from './Utils/TagFilter.js'
 import { TagSorter } from './Utils/TagSorter.js'
 import { container } from 'tsyringe'
@@ -102,12 +104,16 @@ function prepareContainer(core: CoreInterface) {
   container.register('ExecInterface', { useClass: Exec })
   container.register('IoInterface', { useClass: Io })
   container.register('LoggerInterface', { useClass: Logger })
+  container.register('PrinterInterface', { useClass: Printer })
   container.register('RegClientInterface', { useClass: RegClient })
   container.register('RegClientConcurrencyLimiterInterface', {
     useClass: RegClientConcurrencyLimiter
   })
   container.register('RegCtlBinaryBuilderInterface', {
     useClass: RegCtlBinaryBuilder
+  })
+  container.register('RegCtlVersionBuilderInterface', {
+    useClass: RegCtlVersionBuilder
   })
   container.register('RegClientCredentialsBuilderInterface', {
     useClass: RegClientCredentialsBuilder

@@ -5,6 +5,9 @@ import { ExecInterface } from '../Utils/GitHubAction/ExecInterface.js'
 import { IoInterface } from '../Utils/GitHubAction/IoInterface.js'
 import { LoggerInterface } from '../Utils/LoggerInterface.js'
 import { RegCtlBinaryBuilderInterface } from './Service/RegCtlBinaryBuilderInterface.js'
+import { RegCtlVersion } from './RegCtlVersion.js'
+import { RegCtlVersionBuilderInterface } from './Service/RegCtlVersionBuilderInterface.js'
+import { Summary } from '../Summary/Summary.js'
 
 @scoped(Lifecycle.ContainerScoped)
 export class Action {
@@ -19,8 +22,12 @@ export class Action {
     private readonly exec: ExecInterface,
     @inject('CoreInterface')
     private readonly core: CoreInterface,
+    @inject('RegCtlVersionBuilderInterface')
+    private readonly regCtlVersionBuilder: RegCtlVersionBuilderInterface,
     @inject('LoggerInterface')
-    private readonly logger: LoggerInterface
+    private readonly logger: LoggerInterface,
+    @inject(Summary)
+    private readonly summary: Summary
   ) {}
 
   async run(): Promise<void> {
@@ -47,7 +54,9 @@ export class Action {
 
     this.core.addPath(regCtlBinary.installationDirectory)
 
-    await this.exec.exec('regctl', ['version'])
+    const regCtlVersion: RegCtlVersion =
+      await this.regCtlVersionBuilder.buildFromExecOutput()
+    this.summary.setInstalledRegCtlVersion(regCtlVersion.vcsTag)
   }
 
   async post(): Promise<void> {

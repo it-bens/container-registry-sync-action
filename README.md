@@ -18,6 +18,9 @@ any layers that are already present in the target repository.
 
 The action can also be used to copy images within the same registry.
 
+A summary with the installed regclient version and the copied tags will be
+created.
+
 ![screenshot of a running action](./docs/action.jpg)
 
 ## Usage

@@ -1,7 +1,7 @@
 import { It, Mock } from 'moq.ts'
 import { RegCtlBinaryBuilderInterface } from '../../../src/Install/Service/RegCtlBinaryBuilderInterface.js'
 
-export function setupRegCtlBinaryBuilderInterface(): Mock<RegCtlBinaryBuilderInterface> {
+export function setupMockedRegCtlBinaryBuilderInterface(): Mock<RegCtlBinaryBuilderInterface> {
   const mockedRegCtlBinaryBuilder = new Mock<RegCtlBinaryBuilderInterface>()
   mockedRegCtlBinaryBuilder
     .setup((regCtlBinaryBuilder) => regCtlBinaryBuilder.build(It.IsAny()))

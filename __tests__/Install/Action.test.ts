@@ -7,21 +7,52 @@ import { IoInterface } from '../../src/Utils/GitHubAction/IoInterface.js'
 import { LoggerInterface } from '../../src/Utils/LoggerInterface.js'
 import { RegCtlBinary } from '../../src/Install/RegCtlBinary.js'
 import { RegCtlBinaryBuilderInterface } from '../../src/Install/Service/RegCtlBinaryBuilderInterface.js'
+import { RegCtlVersion } from '../../src/Install/RegCtlVersion.js'
+import { RegCtlVersionBuilderInterface } from '../../src/Install/Service/RegCtlVersionBuilderInterface.js'
+import { Summary } from '../../src/Summary/Summary.js'
 import _ from 'lodash'
 import { setupMockedCoreInterface } from '../../__fixtures__/Utils/GitHubAction/setupMockedCoreInterface.js'
 import { setupMockedDownloaderInterface } from '../../__fixtures__/Utils/setupMockedDownloaderInterface.js'
 import { setupMockedExecInterface } from '../../__fixtures__/Utils/GitHubAction/setupMockedExecInterface.js'
 import { setupMockedIoInterface } from '../../__fixtures__/Utils/GitHubAction/setupMockedIoInterface.js'
 import { setupMockedLoggerInterface } from '../../__fixtures__/Utils/setupMockedLoggerInterface.js'
-import { setupRegCtlBinaryBuilderInterface } from '../../__fixtures__/Install/Service/setupRegCtlBinaryBuilderInterface.js'
+import { setupMockedRegCtlBinaryBuilderInterface } from '../../__fixtures__/Install/Service/setupMockedRegCtlBinaryBuilderInterface.js'
+import { setupMockedRegCtlVersionBuilderInterface } from '../../__fixtures__/Install/Service/setupMockedRegCtlVersionBuilderInterface.js'
+import { setupMockedSummary } from '../../__fixtures__/Summary/setupMockedSummary.js'
 
 describe('Install/Action', () => {
+  const mockedExecOutputOfRegCtlVersion = {
+    stderr: '',
+    exitCode: 0,
+    stdout:
+      'VCSTag:     v0.8.2\n' +
+      'VCSRef:     e7e5436b4e93a897084aceca6b118b8002b20122\n' +
+      'VCSCommit:  e7e5436b4e93a897084aceca6b118b8002b20122\n' +
+      'VCSState:   clean\n' +
+      'VCSDate:    2025-02-14T14:58:53Z\n' +
+      'Platform:   linux/amd64\n' +
+      'GoVer:      go1.23.6\n' +
+      'GoCompiler: gc'
+  }
+  const mockedRegCtlVersion: RegCtlVersion = {
+    vcsTag: 'v0.8.2',
+    vcsRef: 'e7e5436b4e93a897084aceca6b118b8002b20122',
+    vcsCommit: 'e7e5436b4e93a897084aceca6b118b8002b20122',
+    vcsState: 'clean',
+    vcsDate: '2025-02-14T14:58:53Z',
+    platform: 'linux/amd64',
+    goVersion: 'go1.23.6',
+    goCompiler: 'gc'
+  }
+
   let mockedCore: Mock<CoreInterface>
   let mockedExec: Mock<ExecInterface>
   let mockedIo: Mock<IoInterface>
   let mockedDownloader: Mock<DownloaderInterface>
   let mockedLogger: Mock<LoggerInterface>
   let mockedRegCtlBinaryBuilder: Mock<RegCtlBinaryBuilderInterface>
+  let mockedRegCtlVersionBuilder: Mock<RegCtlVersionBuilderInterface>
+  let mockedSummary: Mock<Summary>
   let action: Action
 
   beforeEach(() => {
@@ -30,14 +61,24 @@ describe('Install/Action', () => {
     mockedIo = setupMockedIoInterface()
     mockedDownloader = setupMockedDownloaderInterface()
     mockedLogger = setupMockedLoggerInterface()
-    mockedRegCtlBinaryBuilder = setupRegCtlBinaryBuilderInterface()
+    mockedRegCtlBinaryBuilder = setupMockedRegCtlBinaryBuilderInterface()
+    mockedRegCtlVersionBuilder = setupMockedRegCtlVersionBuilderInterface()
+    mockedSummary = setupMockedSummary()
 
     mockedExec
       .setup((exec) => exec.exec(It.IsAny(), It.IsAny()))
       .returnsAsync(1)
+    mockedExec
+      .setup((exec) => exec.getExecOutput(It.IsAny(), It.IsAny()))
+      .returnsAsync(mockedExecOutputOfRegCtlVersion)
     mockedRegCtlBinaryBuilder
       .setup((regCtlBinaryBuilder) => regCtlBinaryBuilder.build(It.IsAny()))
       .returns(new RegCtlBinary('/path/to/install', 'latest', 'linux', 'x64'))
+    mockedRegCtlVersionBuilder
+      .setup((regCtlVersionBuilder) =>
+        regCtlVersionBuilder.buildFromExecOutput()
+      )
+      .returnsAsync(mockedRegCtlVersion)
 
     action = new Action(
       mockedRegCtlBinaryBuilder.object(),
@@ -45,7 +86,9 @@ describe('Install/Action', () => {
       mockedDownloader.object(),
       mockedExec.object(),
       mockedCore.object(),
-      mockedLogger.object()
+      mockedRegCtlVersionBuilder.object(),
+      mockedLogger.object(),
+      mockedSummary.object()
     )
   })
 
@@ -76,11 +119,11 @@ describe('Install/Action', () => {
       logger.logRegCtlInstalled('/path/to/install/regctl', 'latest')
     )
     mockedCore.verify((core) => core.addPath('/path/to/install'))
-    mockedExec.verify((exec) =>
-      exec.exec(
-        'regctl',
-        It.Is((value) => _.isEqual(['version'], value))
-      )
+    mockedRegCtlVersionBuilder.verify((regCtlVersionBuilder) =>
+      regCtlVersionBuilder.buildFromExecOutput()
+    )
+    mockedSummary.verify((summary) =>
+      summary.setInstalledRegCtlVersion('v0.8.2')
     )
   })
 

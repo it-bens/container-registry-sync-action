@@ -3,7 +3,9 @@ import { Inputs } from './Inputs.js'
 import { Action as InstallAction } from './Install/Action.js'
 import { LoggerInterface } from './Utils/LoggerInterface.js'
 import { Action as LoginAction } from './Login/Action.js'
+import { PrinterInterface } from './Summary/Service/PrinterInterface.js'
 import { RegClientInterface } from './Utils/RegClientInterface.js'
+import { Summary } from './Summary/Summary.js'
 import { TagFilterInterface } from './Utils/TagFilterInterface.js'
 import { TagSorterInterface } from './Utils/TagSorterInterface.js'
 
@@ -21,7 +23,11 @@ export class Action {
     @inject('TagSorterInterface')
     private readonly tagSorter: TagSorterInterface,
     @inject('LoggerInterface')
-    private readonly logger: LoggerInterface
+    private readonly logger: LoggerInterface,
+    @inject(Summary)
+    private readonly summary: Summary,
+    @inject('PrinterInterface')
+    private readonly summaryPrinter: PrinterInterface
   ) {}
 
   async run(inputs: Inputs) {
@@ -54,7 +60,13 @@ export class Action {
         inputs.targetRepository,
         tag
       )
+      this.summary.addImageCopyResult({
+        tag,
+        success: true
+      })
     }
+
+    await this.summaryPrinter.printSummary(this.summary)
   }
 
   async post(inputs: Inputs) {
