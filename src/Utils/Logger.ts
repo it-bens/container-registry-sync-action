@@ -1,8 +1,10 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
 import { CoreInterface } from './GitHubAction/CoreInterface.js'
 import { LoggerInterface } from './LoggerInterface.js'
+import { registerInterface } from '../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('LoggerInterface', Lifecycle.ContainerScoped)
 export class Logger implements LoggerInterface {
   constructor(
     @inject('CoreInterface')

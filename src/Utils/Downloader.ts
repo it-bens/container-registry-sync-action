@@ -3,8 +3,10 @@ import { basename, dirname } from 'path'
 import { DownloaderHelper } from 'node-downloader-helper'
 import { DownloaderInterface } from './DownloaderInterface.js'
 import { LoggerInterface } from './LoggerInterface.js'
+import { registerInterface } from '../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('DownloaderInterface', Lifecycle.ContainerScoped)
 export class Downloader implements DownloaderInterface {
   constructor(
     @inject('LoggerInterface')

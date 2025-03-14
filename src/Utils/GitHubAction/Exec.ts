@@ -1,8 +1,10 @@
 import * as exec from '@actions/exec'
 import { Lifecycle, scoped } from 'tsyringe'
 import { ExecInterface } from './ExecInterface.js'
+import { registerInterface } from '../../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('ExecInterface', Lifecycle.ContainerScoped)
 export class Exec implements ExecInterface {
   public exec(
     commandLine: string,

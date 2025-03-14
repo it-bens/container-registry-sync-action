@@ -1,7 +1,9 @@
 import { Lifecycle, scoped } from 'tsyringe'
 import { TagSorterInterface } from './TagSorterInterface.js'
+import { registerInterface } from '../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('TagSorterInterface', Lifecycle.ContainerScoped)
 export class TagSorter implements TagSorterInterface {
   public sortTags(tags: string[]): string[] {
     // Group tags by their full version

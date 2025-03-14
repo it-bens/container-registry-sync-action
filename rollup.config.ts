@@ -12,6 +12,7 @@ const config = [
       esModule: true,
       file: 'dist/index.js',
       format: 'es',
+      inlineDynamicImports: true,
       sourcemap: true
     },
     plugins: [
@@ -27,6 +28,7 @@ const config = [
       esModule: true,
       file: 'dist/post.js',
       format: 'es',
+      inlineDynamicImports: true,
       sourcemap: true
     },
     plugins: [

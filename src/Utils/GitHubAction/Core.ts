@@ -5,8 +5,10 @@ import {
   SummaryWriteOptions
 } from '@actions/core/lib/summary.js'
 import { CoreInterface } from './CoreInterface.js'
+import { registerInterface } from '../../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('CoreInterface', Lifecycle.ContainerScoped)
 export class Core implements CoreInterface {
   public addPath(inputPath: string): void {
     core.addPath(inputPath)

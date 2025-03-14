@@ -3,8 +3,10 @@ import { ExecInterface } from './GitHubAction/ExecInterface.js'
 import { RegClientConcurrencyLimiterInterface } from './RegClient/RegClientConcurrencyLimiterInterface.js'
 import { RegClientCredentials } from './RegClient/RegClientCredentials.js'
 import { RegClientInterface } from './RegClientInterface.js'
+import { registerInterface } from '../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('RegClientInterface', Lifecycle.ContainerScoped)
 export class RegClient implements RegClientInterface {
   constructor(
     @inject('ExecInterface')

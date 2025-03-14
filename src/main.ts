@@ -1,27 +1,16 @@
 import 'reflect-metadata'
 import { Action } from './Action.js'
-import { Core } from './Utils/GitHubAction/Core.js'
+import { Container } from './DependencyInjection/Container.js'
 import { CoreInterface } from './Utils/GitHubAction/CoreInterface.js'
-import { Downloader } from './Utils/Downloader.js'
-import { Exec } from './Utils/GitHubAction/Exec.js'
 import { Inputs } from './Inputs.js'
-import { Io } from './Utils/GitHubAction/Io.js'
-import { Logger } from './Utils/Logger.js'
-import { Printer } from './Summary/Service/Printer.js'
-import { RegClient } from './Utils/RegClient.js'
-import { RegClientConcurrencyLimiter } from './Utils/RegClient/RegClientConcurrencyLimiter.js'
-import { RegClientCredentialsBuilder } from './Login/Service/RegClientCredentialsBuilder.js'
-import { RegCtlBinaryBuilder } from './Install/Service/RegCtlBinaryBuilder.js'
-import { RegCtlVersionBuilder } from './Install/Service/RegCtlVersionBuilder.js'
-import { TagFilter } from './Utils/TagFilter.js'
-import { TagSorter } from './Utils/TagSorter.js'
-import { container } from 'tsyringe'
 
 export async function run() {
-  const core = container.resolve(Core) as CoreInterface
-  prepareContainer(core)
-  const inputs = buildInputs(core)
+  const container = await buildContainer()
+  const core: CoreInterface = container.resolve(
+    'CoreInterface'
+  ) as CoreInterface
 
+  const inputs = buildInputs(core)
   const action = container.resolve(Action)
 
   try {
@@ -35,20 +24,36 @@ export async function run() {
 }
 
 export async function post() {
-  const core = container.resolve(Core) as CoreInterface
-  prepareContainer(core)
-  const inputs = buildInputs(core)
+  const container = await buildContainer()
+  const core: CoreInterface = container.resolve(
+    'CoreInterface'
+  ) as CoreInterface
 
+  const inputs = buildInputs(core)
   const action = container.resolve(Action)
 
   try {
     await action.post(inputs)
   } catch (error: unknown) {
     if (error instanceof Error) {
-      const core = container.resolve(Core) as CoreInterface
+      const core = container.resolve('CoreInterface') as CoreInterface
       core.setFailed(error.message)
     }
   }
+}
+
+async function buildContainer(): Promise<Container> {
+  const container: Container = new Container()
+  await container.registerInterfaces()
+
+  const core = container.resolve('CoreInterface') as CoreInterface
+  container.registerValue(
+    'RegClientConcurrency',
+    parseRegClientConcurrency(core)
+  )
+  container.registerValue('ENV_HOME', parseEnvHome(core))
+
+  return container
 }
 
 function buildInputs(core: CoreInterface): Inputs {
@@ -81,7 +86,7 @@ function buildInputs(core: CoreInterface): Inputs {
   }
 }
 
-function prepareContainer(core: CoreInterface) {
+function parseRegClientConcurrency(core: CoreInterface): number {
   const regClientConcurrencyInput = core.getInput('regClientConcurrency', {
     required: false
   })
@@ -91,35 +96,17 @@ function prepareContainer(core: CoreInterface) {
       'regClientConcurrency must be a positive integer greater than 0'
     )
   }
-  container.register('RegClientConcurrency', { useValue: regClientConcurrency })
 
+  return regClientConcurrency
+}
+
+function parseEnvHome(core: CoreInterface): string {
   const envHome = process.env.HOME
   if (!envHome) {
     core.setFailed('HOME environment variable is not set')
   }
-  container.register('ENV_HOME', { useValue: envHome })
 
-  container.register('CoreInterface', { useClass: Core })
-  container.register('DownloaderInterface', { useClass: Downloader })
-  container.register('ExecInterface', { useClass: Exec })
-  container.register('IoInterface', { useClass: Io })
-  container.register('LoggerInterface', { useClass: Logger })
-  container.register('PrinterInterface', { useClass: Printer })
-  container.register('RegClientInterface', { useClass: RegClient })
-  container.register('RegClientConcurrencyLimiterInterface', {
-    useClass: RegClientConcurrencyLimiter
-  })
-  container.register('RegCtlBinaryBuilderInterface', {
-    useClass: RegCtlBinaryBuilder
-  })
-  container.register('RegCtlVersionBuilderInterface', {
-    useClass: RegCtlVersionBuilder
-  })
-  container.register('RegClientCredentialsBuilderInterface', {
-    useClass: RegClientCredentialsBuilder
-  })
-  container.register('TagFilterInterface', { useClass: TagFilter })
-  container.register('TagSorterInterface', { useClass: TagSorter })
+  return envHome as string
 }
 
 function parseLoginToInput(input: string): boolean {
