@@ -3,8 +3,10 @@ import { CoreInterface } from '../../Utils/GitHubAction/CoreInterface.js'
 import { RegCtlBinary } from '../RegCtlBinary.js'
 import { RegCtlBinaryBuilderInterface } from './RegCtlBinaryBuilderInterface.js'
 import path from 'path'
+import { registerInterface } from '../../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('RegCtlBinaryBuilderInterface', Lifecycle.ContainerScoped)
 export class RegCtlBinaryBuilder implements RegCtlBinaryBuilderInterface {
   constructor(
     @inject('ENV_HOME')

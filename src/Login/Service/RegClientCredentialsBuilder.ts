@@ -2,8 +2,13 @@ import { Lifecycle, scoped } from 'tsyringe'
 import { Inputs } from '../../Inputs.js'
 import { RegClientCredentials } from '../../Utils/RegClient/RegClientCredentials.js'
 import { RegClientCredentialsBuilderInterface } from './RegClientCredentialsBuilderInterface.js'
+import { registerInterface } from '../../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface(
+  'RegClientCredentialsBuilderInterface',
+  Lifecycle.ContainerScoped
+)
 export class RegClientCredentialsBuilder
   implements RegClientCredentialsBuilderInterface
 {

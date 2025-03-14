@@ -2,8 +2,10 @@ import { Lifecycle, inject, scoped } from 'tsyringe'
 import { ExecInterface } from '../../Utils/GitHubAction/ExecInterface.js'
 import { RegCtlVersion } from '../RegCtlVersion.js'
 import { RegCtlVersionBuilderInterface } from './RegCtlVersionBuilderInterface.js'
+import { registerInterface } from '../../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('RegCtlVersionBuilderInterface', Lifecycle.ContainerScoped)
 export class RegCtlVersionBuilder implements RegCtlVersionBuilderInterface {
   private readonly lineDelimiter = '\n'
   private readonly expectedLineCount = 8

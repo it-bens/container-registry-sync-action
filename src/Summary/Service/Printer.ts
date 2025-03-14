@@ -4,8 +4,10 @@ import { CoreInterface } from '../../Utils/GitHubAction/CoreInterface.js'
 import { ImageCopyResult } from '../ImageCopyResult.js'
 import { PrinterInterface } from './PrinterInterface.js'
 import { Summary } from '../Summary.js'
+import { registerInterface } from '../../DependencyInjection/Decorator/register-interface.js'
 
 @scoped(Lifecycle.ContainerScoped)
+@registerInterface('PrinterInterface', Lifecycle.ContainerScoped)
 export class Printer implements PrinterInterface {
   constructor(
     @inject('CoreInterface')
