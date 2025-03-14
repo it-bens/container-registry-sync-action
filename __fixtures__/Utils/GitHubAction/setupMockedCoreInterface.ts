@@ -5,6 +5,13 @@ export function setupMockedCoreInterface(): Mock<CoreInterface> {
   const mockedCore = new Mock<CoreInterface>()
 
   mockedCore.setup((core) => core.addPath(It.IsAny())).returns(undefined)
+  mockedCore
+    .setup((core) => core.addRawToSummary(It.IsAny(), It.IsAny()))
+    .returns(undefined)
+  mockedCore.setup((core) => core.addSeparatorToSummary()).returns(undefined)
+  mockedCore
+    .setup((core) => core.addTableToSummary(It.IsAny()))
+    .returns(undefined)
   mockedCore.setup((core) => core.error(It.IsAny())).returns(undefined)
   mockedCore
     .setup((core) => core.getInput(It.IsAny(), It.IsAny()))
@@ -17,6 +24,9 @@ export function setupMockedCoreInterface(): Mock<CoreInterface> {
     .setup((core) => core.platformArch())
     .throws(new Error('Method mock not implemented yet.'))
   mockedCore.setup((core) => core.setFailed(It.IsAny())).returns(undefined)
+  mockedCore
+    .setup((core) => core.writeSummary(It.IsAny()))
+    .returnsAsync(undefined)
 
   return mockedCore
 }

@@ -2205,20 +2205,47 @@ if (typeof Reflect === "undefined" || !Reflect.getMetadata) {
     throw new Error("tsyringe requires a reflect polyfill. Please add 'import \"reflect-metadata\"' to the top of your entry point.");
 }
 
+let Summary = class Summary {
+    installedRegCtlVersion = null;
+    imageCopyResults = [];
+    setInstalledRegCtlVersion(version) {
+        this.installedRegCtlVersion = version;
+    }
+    addImageCopyResult(result) {
+        this.imageCopyResults.push(result);
+    }
+    getInstalledRegCtlVersion() {
+        if (this.installedRegCtlVersion === null) {
+            throw new Error('installedRegCtlVersion has not been set');
+        }
+        return this.installedRegCtlVersion;
+    }
+    getImageCopyResults() {
+        return this.imageCopyResults;
+    }
+};
+Summary = __decorate([
+    scoped(Lifecycle$1.ContainerScoped)
+], Summary);
+
 let Action$2 = class Action {
     regCtlBinaryBuilder;
     io;
     downloader;
     exec;
     core;
+    regCtlVersionBuilder;
     logger;
-    constructor(regCtlBinaryBuilder, io, downloader, exec, core, logger) {
+    summary;
+    constructor(regCtlBinaryBuilder, io, downloader, exec, core, regCtlVersionBuilder, logger, summary) {
         this.regCtlBinaryBuilder = regCtlBinaryBuilder;
         this.io = io;
         this.downloader = downloader;
         this.exec = exec;
         this.core = core;
+        this.regCtlVersionBuilder = regCtlVersionBuilder;
         this.logger = logger;
+        this.summary = summary;
     }
     async run() {
         const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
@@ -2234,7 +2261,8 @@ let Action$2 = class Action {
         await this.exec.exec('chmod', ['+x', regCtlBinary.getInstallationPath()]);
         this.logger.logRegCtlInstalled(regCtlBinary.getInstallationPath(), regCtlBinary.version);
         this.core.addPath(regCtlBinary.installationDirectory);
-        await this.exec.exec('regctl', ['version']);
+        const regCtlVersion = await this.regCtlVersionBuilder.buildFromExecOutput();
+        this.summary.setInstalledRegCtlVersion(regCtlVersion.vcsTag);
     }
     async post() {
         const regCtlBinary = this.regCtlBinaryBuilder.build('latest');
@@ -2254,8 +2282,10 @@ Action$2 = __decorate([
     __param(2, inject('DownloaderInterface')),
     __param(3, inject('ExecInterface')),
     __param(4, inject('CoreInterface')),
-    __param(5, inject('LoggerInterface')),
-    __metadata("design:paramtypes", [Object, Object, Object, Object, Object, Object])
+    __param(5, inject('RegCtlVersionBuilderInterface')),
+    __param(6, inject('LoggerInterface')),
+    __param(7, inject(Summary)),
+    __metadata("design:paramtypes", [Object, Object, Object, Object, Object, Object, Object, Summary])
 ], Action$2);
 
 let Action$1 = class Action {
@@ -2319,13 +2349,17 @@ let Action = class Action {
     tagFilter;
     tagSorter;
     logger;
-    constructor(installAction, loginAction, regClient, tagFilter, tagSorter, logger) {
+    summary;
+    summaryPrinter;
+    constructor(installAction, loginAction, regClient, tagFilter, tagSorter, logger, summary, summaryPrinter) {
         this.installAction = installAction;
         this.loginAction = loginAction;
         this.regClient = regClient;
         this.tagFilter = tagFilter;
         this.tagSorter = tagSorter;
         this.logger = logger;
+        this.summary = summary;
+        this.summaryPrinter = summaryPrinter;
     }
     async run(inputs) {
         await this.installAction.run();
@@ -2338,7 +2372,12 @@ let Action = class Action {
         this.logger.logTagsToBeCopied(filteredSourceRepositoryTags, inputs.sourceRepository, inputs.targetRepository);
         for (const tag of filteredSourceRepositoryTags) {
             await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
+            this.summary.addImageCopyResult({
+                tag,
+                success: true
+            });
         }
+        await this.summaryPrinter.printSummary(this.summary);
     }
     async post(inputs) {
         await this.loginAction.post(inputs);
@@ -2353,8 +2392,10 @@ Action = __decorate([
     __param(3, inject('TagFilterInterface')),
     __param(4, inject('TagSorterInterface')),
     __param(5, inject('LoggerInterface')),
+    __param(6, inject(Summary)),
+    __param(7, inject('PrinterInterface')),
     __metadata("design:paramtypes", [Action$2,
-        Action$1, Object, Object, Object, Object])
+        Action$1, Object, Object, Object, Object, Summary, Object])
 ], Action);
 
 var core = {};
@@ -29577,6 +29618,15 @@ let Core = class Core {
     addPath(inputPath) {
         coreExports.addPath(inputPath);
     }
+    addRawToSummary(text, addEol) {
+        coreExports.summary.addRaw(text, addEol);
+    }
+    addSeparatorToSummary() {
+        coreExports.summary.addSeparator();
+    }
+    addTableToSummary(rows) {
+        coreExports.summary.addTable(rows);
+    }
     error(message) {
         coreExports.error(message);
     }
@@ -29594,6 +29644,9 @@ let Core = class Core {
     }
     setFailed(message) {
         coreExports.setFailed(message);
+    }
+    async writeSummary(options) {
+        await coreExports.summary.write(options);
     }
 };
 Core = __decorate([
@@ -29721,6 +29774,49 @@ Logger = __decorate([
     __param(0, inject('CoreInterface')),
     __metadata("design:paramtypes", [Object])
 ], Logger);
+
+let Printer = class Printer {
+    core;
+    constructor(core) {
+        this.core = core;
+    }
+    async printSummary(summary) {
+        this.core.addRawToSummary(`installed regctl version: ${summary.getInstalledRegCtlVersion()}`, true);
+        if (summary.getImageCopyResults().length > 0) {
+            this.core.addSeparatorToSummary();
+            const tableHeader = [
+                {
+                    data: 'Tag',
+                    header: true
+                },
+                {
+                    data: 'Result',
+                    header: true
+                }
+            ];
+            const tableRows = summary
+                .getImageCopyResults()
+                .map((result) => {
+                const tagCell = {
+                    data: result.tag,
+                    header: false
+                };
+                const successCell = {
+                    data: result.success ? '✅' : '❌',
+                    header: false
+                };
+                return [tagCell, successCell];
+            });
+            this.core.addTableToSummary([tableHeader, ...tableRows]);
+        }
+        await this.core.writeSummary();
+    }
+};
+Printer = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject('CoreInterface')),
+    __metadata("design:paramtypes", [Object])
+], Printer);
 
 let RegClient = class RegClient {
     exec;
@@ -30027,6 +30123,42 @@ RegCtlBinaryBuilder = __decorate([
     __param(1, inject('CoreInterface')),
     __metadata("design:paramtypes", [String, Object])
 ], RegCtlBinaryBuilder);
+
+let RegCtlVersionBuilder = class RegCtlVersionBuilder {
+    exec;
+    lineDelimiter = '\n';
+    expectedLineCount = 8;
+    keyStringLength = 12;
+    constructor(exec) {
+        this.exec = exec;
+    }
+    async buildFromExecOutput() {
+        const output = await this.exec.getExecOutput('regctl', ['version']);
+        const lines = output.stdout.trim().split(this.lineDelimiter);
+        if (lines.length !== this.expectedLineCount) {
+            throw new Error(`Unexpected number of lines in regctl version output. Expected ${this.expectedLineCount}, got ${lines.length}`);
+        }
+        return {
+            vcsTag: this.extractValueFromLine(lines[0]),
+            vcsRef: this.extractValueFromLine(lines[1]),
+            vcsCommit: this.extractValueFromLine(lines[2]),
+            vcsState: this.extractValueFromLine(lines[3]),
+            vcsDate: this.extractValueFromLine(lines[4]),
+            platform: this.extractValueFromLine(lines[5]),
+            goVersion: this.extractValueFromLine(lines[6]),
+            goCompiler: this.extractValueFromLine(lines[7])
+        };
+    }
+    extractValueFromLine(line) {
+        const value = line.substring(this.keyStringLength);
+        return value.trim();
+    }
+};
+RegCtlVersionBuilder = __decorate([
+    scoped(Lifecycle$1.ContainerScoped),
+    __param(0, inject('ExecInterface')),
+    __metadata("design:paramtypes", [Object])
+], RegCtlVersionBuilder);
 
 var balancedMatch;
 var hasRequiredBalancedMatch;
@@ -32195,12 +32327,16 @@ function prepareContainer(core) {
     instance.register('ExecInterface', { useClass: Exec });
     instance.register('IoInterface', { useClass: Io });
     instance.register('LoggerInterface', { useClass: Logger });
+    instance.register('PrinterInterface', { useClass: Printer });
     instance.register('RegClientInterface', { useClass: RegClient });
     instance.register('RegClientConcurrencyLimiterInterface', {
         useClass: RegClientConcurrencyLimiter
     });
     instance.register('RegCtlBinaryBuilderInterface', {
         useClass: RegCtlBinaryBuilder
+    });
+    instance.register('RegCtlVersionBuilderInterface', {
+        useClass: RegCtlVersionBuilder
     });
     instance.register('RegClientCredentialsBuilderInterface', {
         useClass: RegClientCredentialsBuilder

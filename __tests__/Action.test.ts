@@ -4,12 +4,16 @@ import { Inputs } from '../src/Inputs.js'
 import { Action as InstallAction } from '../src/Install/Action.js'
 import { LoggerInterface } from '../src/Utils/LoggerInterface.js'
 import { Action as LoginAction } from '../src/Login/Action.js'
+import { PrinterInterface } from '../src/Summary/Service/PrinterInterface.js'
 import { RegClientInterface } from '../src/Utils/RegClientInterface.js'
+import { Summary } from '../src/Summary/Summary.js'
 import { TagFilterInterface } from '../src/Utils/TagFilterInterface.js'
 import { TagSorterInterface } from '../src/Utils/TagSorterInterface.js'
 import _ from 'lodash'
 import { setupMockedLoggerInterface } from '../__fixtures__/Utils/setupMockedLoggerInterface.js'
+import { setupMockedPrinterInterface } from '../__fixtures__/Summary/Service/setupMockedPrinterInterface.js'
 import { setupMockedRegClientInterface } from '../__fixtures__/Utils/setupMockedRegClientInterface.js'
+import { setupMockedSummary } from '../__fixtures__/Summary/setupMockedSummary.js'
 import { setupMockedTagFilterInterface } from '../__fixtures__/Utils/setupMockedTagFilterInterface.js'
 import { setupMockedTagSorterInterface } from '../__fixtures__/Utils/setupMockedTagSorterInterface.js'
 
@@ -20,6 +24,8 @@ describe('Action', () => {
   let mockedTagFilter: Mock<TagFilterInterface>
   let mockedTagSorter: Mock<TagSorterInterface>
   let mockedLogger: Mock<LoggerInterface>
+  let mockedSummary: Mock<Summary>
+  let mockedSummaryPrinter: Mock<PrinterInterface>
   let action: Action
   let inputs: Inputs
 
@@ -42,6 +48,8 @@ describe('Action', () => {
     mockedTagFilter = setupMockedTagFilterInterface()
     mockedTagSorter = setupMockedTagSorterInterface()
     mockedLogger = setupMockedLoggerInterface()
+    mockedSummary = setupMockedSummary()
+    mockedSummaryPrinter = setupMockedPrinterInterface()
 
     mockedInstallAction
       .setup((installAction) => installAction.run())
@@ -62,7 +70,9 @@ describe('Action', () => {
       mockedRegClient.object(),
       mockedTagFilter.object(),
       mockedTagSorter.object(),
-      mockedLogger.object()
+      mockedLogger.object(),
+      mockedSummary.object(),
+      mockedSummaryPrinter.object()
     )
   })
 
@@ -116,6 +126,23 @@ describe('Action', () => {
           'tag2'
         ),
       Times.Once()
+    )
+    mockedSummary.verify(
+      (summary) =>
+        summary.addImageCopyResult(
+          It.Is((value) => _.isEqual({ tag: 'tag1', success: true }, value))
+        ),
+      Times.Once()
+    )
+    mockedSummary.verify(
+      (summary) =>
+        summary.addImageCopyResult(
+          It.Is((value) => _.isEqual({ tag: 'tag2', success: true }, value))
+        ),
+      Times.Once()
+    )
+    mockedSummaryPrinter.verify((printer) =>
+      printer.printSummary(It.Is((value) => mockedSummary.object() === value))
     )
   })
 
