@@ -2345,15 +2345,17 @@ Action$1 = __decorate([
 let Action = class Action {
     installAction;
     loginAction;
+    core;
     regClient;
     tagFilter;
     tagSorter;
     logger;
     summary;
     summaryPrinter;
-    constructor(installAction, loginAction, regClient, tagFilter, tagSorter, logger, summary, summaryPrinter) {
+    constructor(installAction, loginAction, core, regClient, tagFilter, tagSorter, logger, summary, summaryPrinter) {
         this.installAction = installAction;
         this.loginAction = loginAction;
+        this.core = core;
         this.regClient = regClient;
         this.tagFilter = tagFilter;
         this.tagSorter = tagSorter;
@@ -2371,7 +2373,20 @@ let Action = class Action {
         this.logger.logTagsMatched(filteredSourceRepositoryTags.length, 'source');
         this.logger.logTagsToBeCopied(filteredSourceRepositoryTags, inputs.sourceRepository, inputs.targetRepository);
         for (const tag of filteredSourceRepositoryTags) {
-            await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
+            try {
+                await this.regClient.copyImageFromSourceToTarget(inputs.sourceRepository, tag, inputs.targetRepository, tag);
+            }
+            catch (error) {
+                if (error instanceof Error &&
+                    error.message.startsWith('Failed to copy image')) {
+                    this.core.setFailed(error.message);
+                    this.summary.addImageCopyResult({
+                        tag,
+                        success: false
+                    });
+                    continue;
+                }
+            }
             this.summary.addImageCopyResult({
                 tag,
                 success: true
@@ -2388,14 +2403,15 @@ Action = __decorate([
     scoped(Lifecycle$1.ContainerScoped),
     __param(0, inject(Action$2)),
     __param(1, inject(Action$1)),
-    __param(2, inject('RegClientInterface')),
-    __param(3, inject('TagFilterInterface')),
-    __param(4, inject('TagSorterInterface')),
-    __param(5, inject('LoggerInterface')),
-    __param(6, inject(Summary)),
-    __param(7, inject('PrinterInterface')),
+    __param(2, inject('CoreInterface')),
+    __param(3, inject('RegClientInterface')),
+    __param(4, inject('TagFilterInterface')),
+    __param(5, inject('TagSorterInterface')),
+    __param(6, inject('LoggerInterface')),
+    __param(7, inject(Summary)),
+    __param(8, inject('PrinterInterface')),
     __metadata("design:paramtypes", [Action$2,
-        Action$1, Object, Object, Object, Object, Summary, Object])
+        Action$1, Object, Object, Object, Object, Object, Summary, Object])
 ], Action);
 
 var core = {};
@@ -29847,12 +29863,17 @@ let RegClient = class RegClient {
         await this.exec.exec('regctl', args);
     }
     async copyImageFromSourceToTarget(sourceRepository, sourceTag, targetRepository, targetTag) {
-        await this.concurrencyLimiter.execute(() => this.exec.exec('regctl', [
+        const result = await this.concurrencyLimiter.execute(() => this.exec.exec('regctl', [
             'image',
             'copy',
             `${sourceRepository}:${sourceTag}`,
             `${targetRepository}:${targetTag}`
-        ]));
+        ], {
+            ignoreReturnCode: true
+        }));
+        if (result !== 0) {
+            throw new Error(`Failed to copy image from ${sourceRepository}:${sourceTag} to ${targetRepository}:${targetTag}`);
+        }
     }
 };
 RegClient = __decorate([

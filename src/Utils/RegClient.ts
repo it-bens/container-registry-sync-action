@@ -56,13 +56,25 @@ export class RegClient implements RegClientInterface {
     targetRepository: string,
     targetTag: string
   ): Promise<void> {
-    await this.concurrencyLimiter.execute(() =>
-      this.exec.exec('regctl', [
-        'image',
-        'copy',
-        `${sourceRepository}:${sourceTag}`,
-        `${targetRepository}:${targetTag}`
-      ])
+    const result = await this.concurrencyLimiter.execute(() =>
+      this.exec.exec(
+        'regctl',
+        [
+          'image',
+          'copy',
+          `${sourceRepository}:${sourceTag}`,
+          `${targetRepository}:${targetTag}`
+        ],
+        {
+          ignoreReturnCode: true
+        }
+      )
     )
+
+    if (result !== 0) {
+      throw new Error(
+        `Failed to copy image from ${sourceRepository}:${sourceTag} to ${targetRepository}:${targetTag}`
+      )
+    }
   }
 }

@@ -112,6 +112,21 @@ describe('RegClient', () => {
     const targetRepository = 'target-repo'
     const targetTag = 'v1.0.0'
 
+    mockedExec
+      .setup((exec) =>
+        exec.exec(
+          'regctl',
+          It.Is((value) =>
+            _.isEqual(
+              ['image', 'copy', 'source-repo:v1.0.0', 'target-repo:v1.0.0'],
+              value
+            )
+          ),
+          It.Is((value) => _.isEqual({ ignoreReturnCode: true }, value))
+        )
+      )
+      .returnsAsync(0)
+
     regClient = new RegClient(
       mockedExec.object(),
       new RegClientConcurrencyLimiter()
@@ -132,8 +147,42 @@ describe('RegClient', () => {
             ['image', 'copy', 'source-repo:v1.0.0', 'target-repo:v1.0.0'],
             value
           )
+        ),
+        It.Is((value) => _.isEqual({ ignoreReturnCode: true }, value))
+      )
+    )
+  })
+
+  it('should throw an error if exec fails with a non-zero return code', async () => {
+    const sourceRepository = 'source-repo'
+    const sourceTag = 'v1.0.0'
+    const targetRepository = 'target-repo'
+    const targetTag = 'v1.0.0'
+
+    mockedExec
+      .setup((exec) =>
+        exec.exec(
+          'regctl',
+          It.Is((value) =>
+            _.isEqual(
+              ['image', 'copy', 'source-repo:v1.0.0', 'target-repo:v1.0.0'],
+              value
+            )
+          ),
+          It.Is((value) => _.isEqual({ ignoreReturnCode: true }, value))
         )
       )
+      .returnsAsync(1)
+
+    await expect(
+      regClient.copyImageFromSourceToTarget(
+        sourceRepository,
+        sourceTag,
+        targetRepository,
+        targetTag
+      )
+    ).rejects.toThrow(
+      `Failed to copy image from ${sourceRepository}:${sourceTag} to ${targetRepository}:${targetTag}`
     )
   })
 })

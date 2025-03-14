@@ -1,4 +1,5 @@
 import { Lifecycle, inject, scoped } from 'tsyringe'
+import { CoreInterface } from './Utils/GitHubAction/CoreInterface.js'
 import { Inputs } from './Inputs.js'
 import { Action as InstallAction } from './Install/Action.js'
 import { LoggerInterface } from './Utils/LoggerInterface.js'
@@ -16,6 +17,8 @@ export class Action {
     private readonly installAction: InstallAction,
     @inject(LoginAction)
     private readonly loginAction: LoginAction,
+    @inject('CoreInterface')
+    private readonly core: CoreInterface,
     @inject('RegClientInterface')
     private readonly regClient: RegClientInterface,
     @inject('TagFilterInterface')
@@ -54,12 +57,28 @@ export class Action {
       inputs.targetRepository
     )
     for (const tag of filteredSourceRepositoryTags) {
-      await this.regClient.copyImageFromSourceToTarget(
-        inputs.sourceRepository,
-        tag,
-        inputs.targetRepository,
-        tag
-      )
+      try {
+        await this.regClient.copyImageFromSourceToTarget(
+          inputs.sourceRepository,
+          tag,
+          inputs.targetRepository,
+          tag
+        )
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.startsWith('Failed to copy image')
+        ) {
+          this.core.setFailed(error.message)
+          this.summary.addImageCopyResult({
+            tag,
+            success: false
+          })
+
+          continue
+        }
+      }
+
       this.summary.addImageCopyResult({
         tag,
         success: true
