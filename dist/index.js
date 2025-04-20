@@ -1878,11 +1878,15 @@ var InternalDependencyContainer = (function () {
             useClass: useClass
         }, { lifecycle: Lifecycle$1.Singleton });
     };
-    InternalDependencyContainer.prototype.resolve = function (token, context) {
+    InternalDependencyContainer.prototype.resolve = function (token, context, isOptional) {
         if (context === void 0) { context = new ResolutionContext(); }
+        if (isOptional === void 0) { isOptional = false; }
         this.ensureNotDisposed();
         var registration = this.getRegistration(token);
         if (!registration && isNormalToken(token)) {
+            if (isOptional) {
+                return undefined;
+            }
             throw new Error("Attempted to resolve unregistered dependency token: \"" + token.toString() + "\"");
         }
         this.executePreResolutionInterceptor(token, "Single");
@@ -1980,12 +1984,16 @@ var InternalDependencyContainer = (function () {
         }
         return resolved;
     };
-    InternalDependencyContainer.prototype.resolveAll = function (token, context) {
+    InternalDependencyContainer.prototype.resolveAll = function (token, context, isOptional) {
         var _this = this;
         if (context === void 0) { context = new ResolutionContext(); }
+        if (isOptional === void 0) { isOptional = false; }
         this.ensureNotDisposed();
         var registrations = this.getAllRegistrations(token);
         if (!registrations && isNormalToken(token)) {
+            if (isOptional) {
+                return [];
+            }
             throw new Error("Attempted to resolve unregistered dependency token: \"" + token.toString() + "\"");
         }
         this.executePreResolutionInterceptor(token, "All");
@@ -2155,12 +2163,12 @@ var InternalDependencyContainer = (function () {
                 if (isTokenDescriptor(param)) {
                     if (isTransformDescriptor(param)) {
                         return param.multiple
-                            ? (_a = _this.resolve(param.transform)).transform.apply(_a, __spread([_this.resolveAll(param.token)], param.transformArgs)) : (_b = _this.resolve(param.transform)).transform.apply(_b, __spread([_this.resolve(param.token, context)], param.transformArgs));
+                            ? (_a = _this.resolve(param.transform)).transform.apply(_a, __spread([_this.resolveAll(param.token, new ResolutionContext(), param.isOptional)], param.transformArgs)) : (_b = _this.resolve(param.transform)).transform.apply(_b, __spread([_this.resolve(param.token, context, param.isOptional)], param.transformArgs));
                     }
                     else {
                         return param.multiple
-                            ? _this.resolveAll(param.token)
-                            : _this.resolve(param.token, context);
+                            ? _this.resolveAll(param.token, new ResolutionContext(), param.isOptional)
+                            : _this.resolve(param.token, context, param.isOptional);
                     }
                 }
                 else if (isTransformDescriptor(param)) {
@@ -2182,8 +2190,13 @@ var InternalDependencyContainer = (function () {
 }());
 var instance = new InternalDependencyContainer();
 
-function inject(token) {
-    return defineInjectionTokenMetadata(token);
+function inject(token, options) {
+    var data = {
+        token: token,
+        multiple: false,
+        isOptional: options
+    };
+    return defineInjectionTokenMetadata(data);
 }
 
 function injectable() {
