@@ -2199,7 +2199,7 @@ function inject(token, options) {
     return defineInjectionTokenMetadata(data);
 }
 
-function injectable() {
+function injectable(options) {
     return function (target) {
         typeInfo.set(target, getParamInfo(target));
     };
