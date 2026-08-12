@@ -39,8 +39,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/exec": "^1.1.1",
+    "@actions/core": "^3.0.1",
+    "@actions/exec": "^3.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "node-downloader-helper": "^2.1.9",
     "reflect-metadata": "^0.2.2",
